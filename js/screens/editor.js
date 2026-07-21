@@ -6,7 +6,25 @@ const PAGE_H = 507;
 const MIN_ZOOM = 0.45;
 const MAX_ZOOM = 2.6;
 
-const STICKERS = ["💗", "💕", "💖", "⭐", "✨", "🌸", "🌷", "🌼", "🎀", "📌", "🎫", "🕊️", "☁️", "🌙", "🦋", "🍄", "🍡", "🧸", "📷", "🎧", "✏️", "📍", "🔖", "🌿", "🍒", "🎈", "📎", "💌", "🪄", "🕯️"];
+const STICKERS = [
+  "🎀", "💗", "💕", "💖", "💝", "💘", "⭐", "✨", "🌟", "💫",
+  "🌸", "🌷", "🌼", "🌹", "💐", "🌺", "🦢", "🩰", "👛", "💄",
+  "💋", "👑", "💍", "📿", "🪞", "🍓", "🍒", "🍰", "🧁", "🍭",
+  "🍬", "🍡", "☕", "🕊️", "🦋", "🐚", "🧸", "👗", "👠", "🎧",
+  "📷", "🎞️", "📸", "☁️", "🌙", "🌈", "🍄", "🌿", "🧺", "📌",
+  "🎫", "📎", "💌", "🪄", "🕯️", "📖", "🔖", "🗝️", "🎗️", "🧵",
+];
+
+const SIGNATURE_STICKERS = [
+  { id: "bow", aspect: 100 / 60, svg: `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg"><path d="M50 30 L10 8 Q2 8 2 20 L2 40 Q2 52 10 52 Z" fill="#e8a0bb"/><path d="M50 30 L90 8 Q98 8 98 20 L98 40 Q98 52 90 52 Z" fill="#f2b6cc"/><circle cx="50" cy="30" r="9" fill="#c9698f"/></svg>` },
+  { id: "ribbon", aspect: 140 / 50, svg: `<svg viewBox="0 0 140 50" xmlns="http://www.w3.org/2000/svg"><polygon points="10,5 130,5 140,25 130,45 10,45 20,25" fill="#f6c9d8" stroke="#d98fac" stroke-width="2"/></svg>` },
+  { id: "pearls", aspect: 120 / 30, svg: `<svg viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg">${[10, 30, 50, 70, 90, 110].map((cx, i) => `<circle cx="${cx}" cy="${[20, 14, 10, 10, 14, 20][i]}" r="8" fill="#fff8f3" stroke="#e3c9a0" stroke-width="1.5"/>`).join("")}</svg>` },
+  { id: "sparkle-heart", aspect: 1, svg: `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 85 C20 65 5 45 5 28 C5 12 18 3 32 3 C42 3 50 10 50 20 C50 10 58 3 68 3 C82 3 95 12 95 28 C95 45 80 65 50 85 Z" fill="#e8688f"/><path d="M78 15 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 Z" fill="#fff8f3"/><path d="M20 55 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 Z" fill="#fff8f3"/></svg>` },
+  { id: "crown", aspect: 100 / 70, svg: `<svg viewBox="0 0 100 70" xmlns="http://www.w3.org/2000/svg"><polygon points="10,60 10,25 28,42 50,15 72,42 90,25 90,60" fill="#f0bd82" stroke="#c9885a" stroke-width="2"/><circle cx="10" cy="22" r="6" fill="#f0bd82"/><circle cx="50" cy="12" r="6" fill="#f0bd82"/><circle cx="90" cy="22" r="6" fill="#f0bd82"/></svg>` },
+  { id: "flower-stem", aspect: 100 / 120, svg: `<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="30" r="16" fill="#fbdce6"/><circle cx="72" cy="42" r="16" fill="#fbdce6"/><circle cx="64" cy="66" r="16" fill="#fbdce6"/><circle cx="36" cy="66" r="16" fill="#fbdce6"/><circle cx="28" cy="42" r="16" fill="#fbdce6"/><circle cx="50" cy="48" r="11" fill="#f0bd82"/><path d="M50 60 C46 80 54 90 46 108" stroke="#8fa876" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M46 90 C38 90 34 84 34 84" stroke="#8fa876" stroke-width="3" fill="none" stroke-linecap="round"/></svg>` },
+  { id: "butterfly", aspect: 1.2, svg: `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg"><path d="M58 50 C40 10 5 15 8 40 C10 60 40 58 58 50Z" fill="#eab6ce"/><path d="M62 50 C80 10 115 15 112 40 C110 60 80 58 62 50Z" fill="#f2c6d9"/><path d="M58 52 C42 80 12 82 10 65 C8 55 35 55 58 52Z" fill="#d98fac"/><path d="M62 52 C78 80 108 82 110 65 C112 55 85 55 62 52Z" fill="#e0a3c0"/><rect x="57" y="45" width="6" height="34" rx="3" fill="#9c6b84"/></svg>` },
+  { id: "cherries", aspect: 90 / 100, svg: `<svg viewBox="0 0 90 100" xmlns="http://www.w3.org/2000/svg"><path d="M45 8 C42 30 42 45 42 45 M45 8 C55 25 62 35 62 35" stroke="#8fa876" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="30" cy="66" r="24" fill="#d94f6a"/><circle cx="62" cy="66" r="24" fill="#e8688f"/><ellipse cx="22" cy="56" rx="6" ry="4" fill="#f2a9c4" opacity=".7"/></svg>` },
+];
 const TAPES = [
   "linear-gradient(180deg,#fbdce6,#f6c9d8)",
   "repeating-linear-gradient(45deg,#fff8f0,#fff8f0 6px,#f3e6d8 6px,#f3e6d8 12px)",
@@ -20,6 +38,7 @@ const TAPES = [
 const FONTS = [
   { id: "display", label: "Aa", family: "var(--font-display)", size: 20 },
   { id: "hand", label: "Aa", family: "var(--font-hand)", size: 26 },
+  { id: "script", label: "Aa", family: "var(--font-script)", size: 30 },
   { id: "body", label: "Aa", family: "var(--font-body)", size: 16 },
 ];
 const TEXT_COLORS = ["#4a3b42", "#9c6b84", "#c94f6a", "#a97142", "#6f8a63", "#fffdfb"];
@@ -31,6 +50,32 @@ const PROMPTS = {
   photodump: "",
   blank: "",
 };
+
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+function calendarFontSize(item) {
+  return Math.max(9, item.w / 15) + "px";
+}
+
+function buildCalendarHTML(item) {
+  const year = item.year, month = item.month;
+  const first = new Date(year, month, 1);
+  const startDow = first.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+  let cells = "";
+  for (let i = 0; i < startDow; i++) cells += `<div class="cal-cell empty"></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = isCurrentMonth && today.getDate() === d;
+    cells += `<div class="cal-cell${isToday ? " today" : ""}">${d}</div>`;
+  }
+  return `
+    <div class="cal-head">${MONTH_NAMES[month]}<br><span class="cal-year">${year}</span></div>
+    <div class="cal-dow">${["S", "M", "T", "W", "T", "F", "S"].map((d) => `<span>${d}</span>`).join("")}</div>
+    <div class="cal-grid">${cells}</div>
+  `;
+}
 
 let ed = null; // editor session state
 let returnScreen = { name: "home", params: {} };
@@ -203,6 +248,7 @@ function buildShell() {
       <button class="efab" id="ed-add-text"><div class="circ"><svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13"/></svg></div><span>Text</span></button>
       <button class="efab" id="ed-add-sticker"><div class="circ"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6L21 9.3l-4.5 4.2 1.2 6.2L12 16.8l-5.7 2.9 1.2-6.2L3 9.3l6.4-.7z"/></svg></div><span>Sticker</span></button>
       <button class="efab" id="ed-add-tape"><div class="circ"><svg viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="6" rx="1.5" transform="rotate(-8 12 12)"/></svg></div><span>Tape</span></button>
+      <button class="efab" id="ed-add-calendar"><div class="circ"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div><span>Calendar</span></button>
       <button class="efab messy" id="ed-messy"><div class="circ" id="ed-messy-circ"><svg viewBox="0 0 24 24"><path d="M4 12c2-4 5-6 8-6s6 2 8 6c-2 4-5 6-8 6s-6-2-8-6z"/><circle cx="12" cy="12" r="2"/></svg></div><span>Messy</span></button>
     </div>
     <div class="item-toolbar" id="ed-item-toolbar"></div>
@@ -273,12 +319,22 @@ function createItemEl(item) {
     body.style.color = item.color || "#4a3b42";
     body.textContent = item.text || "";
   } else if (item.type === "sticker") {
-    const span = document.createElement("span");
-    span.textContent = item.emoji;
-    span.style.fontSize = Math.min(item.w, item.h) * 0.78 + "px";
-    body.appendChild(span);
+    if (item.svg) {
+      body.innerHTML = item.svg;
+      const svgEl = body.querySelector("svg");
+      if (svgEl) { svgEl.style.width = "100%"; svgEl.style.height = "100%"; svgEl.style.display = "block"; }
+    } else {
+      const span = document.createElement("span");
+      span.className = "emoji-glyph";
+      span.textContent = item.emoji;
+      span.style.fontSize = Math.min(item.w, item.h) * 0.78 + "px";
+      body.appendChild(span);
+    }
   } else if (item.type === "tape") {
     body.style.background = item.color;
+  } else if (item.type === "calendar") {
+    body.style.fontSize = calendarFontSize(item);
+    body.innerHTML = buildCalendarHTML(item);
   }
 
   el.appendChild(body);
@@ -393,8 +449,11 @@ function wireItemPointer(el, item) {
       item.h = newH;
       el.style.width = item.w + "px";
       el.style.height = item.h + "px";
-      const span = el.querySelector(".c-body span");
+      const span = el.querySelector(".c-body .emoji-glyph");
       if (span) span.style.fontSize = Math.min(item.w, item.h) * 0.78 + "px";
+      if (item.type === "calendar") {
+        el.querySelector(".c-body").style.fontSize = calendarFontSize(item);
+      }
     };
     const onUp = () => {
       resizeHandle.removeEventListener("pointermove", onMove);
@@ -612,9 +671,27 @@ function openTextSheet(existing) {
 function openStickerSheet() {
   openSheet({
     title: "Add a sticker",
-    html: `<div class="sticker-grid" id="st-grid"></div>`,
+    html: `
+      <div class="segmented" style="margin-bottom:12px;">
+        <button data-tab="signature" class="active">Signature</button>
+        <button data-tab="emoji">Emoji</button>
+      </div>
+      <div class="signature-grid" id="st-signature"></div>
+      <div class="sticker-grid hidden" id="st-emoji"></div>
+    `,
   });
-  const grid = document.getElementById("st-grid");
+  const sigGrid = document.getElementById("st-signature");
+  SIGNATURE_STICKERS.forEach((s) => {
+    const b = document.createElement("button");
+    b.innerHTML = s.svg;
+    b.addEventListener("click", () => {
+      closeSheet();
+      const w = 110;
+      addItem({ type: "sticker", svg: s.svg, w, h: w / s.aspect });
+    });
+    sigGrid.appendChild(b);
+  });
+  const emojiGrid = document.getElementById("st-emoji");
   STICKERS.forEach((emoji) => {
     const b = document.createElement("button");
     b.textContent = emoji;
@@ -622,7 +699,38 @@ function openStickerSheet() {
       closeSheet();
       addItem({ type: "sticker", emoji, w: 64, h: 64 });
     });
-    grid.appendChild(b);
+    emojiGrid.appendChild(b);
+  });
+  document.querySelectorAll('.sheet [data-tab]').forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll('.sheet [data-tab]').forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      sigGrid.classList.toggle("hidden", btn.dataset.tab !== "signature");
+      emojiGrid.classList.toggle("hidden", btn.dataset.tab !== "emoji");
+    });
+  });
+}
+
+function openCalendarSheet() {
+  const now = new Date();
+  const val = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  openSheet({
+    title: "Add a calendar page",
+    html: `
+      <div class="field"><label>Month & year</label><input type="month" id="cal-month" value="${val}" /></div>
+      <button class="btn btn-primary btn-block" id="cal-add">Add to page</button>
+    `,
+  });
+  document.getElementById("cal-add").addEventListener("click", () => {
+    const raw = document.getElementById("cal-month").value;
+    let year = now.getFullYear(), month = now.getMonth();
+    if (raw) {
+      const [y, m] = raw.split("-").map(Number);
+      year = y;
+      month = m - 1;
+    }
+    closeSheet();
+    addItem({ type: "calendar", year, month, w: 230, h: 260, rotation: 0 });
   });
 }
 
@@ -705,6 +813,7 @@ function wireChrome() {
   document.getElementById("ed-add-text").addEventListener("click", () => openTextSheet(null));
   document.getElementById("ed-add-sticker").addEventListener("click", openStickerSheet);
   document.getElementById("ed-add-tape").addEventListener("click", openTapeSheet);
+  document.getElementById("ed-add-calendar").addEventListener("click", openCalendarSheet);
   document.getElementById("ed-messy").addEventListener("click", () => {
     ed.messy = !ed.messy;
     document.getElementById("ed-messy-circ").classList.toggle("on", ed.messy);

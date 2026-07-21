@@ -47,8 +47,8 @@ export async function renderProfile(container) {
       </div>
 
       <div class="section" style="padding:26px 0;text-align:center;">
-        <div style="font-family:var(--font-display);font-style:italic;color:var(--dusty-rose);font-size:14px;">"where memories become pages"</div>
-        <div style="font-size:11.5px;color:var(--ink-soft);margin-top:6px;">Blossom v1.0 · made with 🩷</div>
+        <div style="font-family:var(--font-script);color:var(--dusty-rose);font-size:22px;">where memories become pages</div>
+        <div style="font-size:11.5px;color:var(--ink-soft);margin-top:4px;">Blossom v1.0 · made with 🎀</div>
       </div>
     </div>
   `;
