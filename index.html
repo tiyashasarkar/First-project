@@ -40,6 +40,19 @@
   <p>where memories become pages</p>
 </div>
 
+<!-- SETUP NEEDED (shown instead of everything else until firebase-config.js has real values) -->
+<div id="setup-needed">
+  <div class="emoji">⚙️🌸</div>
+  <h1>One quick setup step</h1>
+  <p>
+    Blossom needs a free Firebase account to sign you in and keep your memories synced.
+    Open <code>js/firebase-config.js</code> and paste in your project's values — full steps are in <code>README.md</code> under "Setting up your free account".
+  </p>
+</div>
+
+<!-- AUTH (sign in / create account) -->
+<div id="auth-screen"></div>
+
 <!-- ONBOARDING -->
 <div id="onboarding">
   <div class="ob-slides" id="ob-slides">
@@ -61,7 +74,7 @@
     <div class="ob-slide">
       <div class="emoji">🔒</div>
       <h2>Just for you</h2>
-      <p>Everything is stored privately on this device. No account, no uploads — your memories stay yours.</p>
+      <p>Your memories are private to your account, securely synced so they're always there — on this phone or any other device you sign into.</p>
     </div>
   </div>
   <div class="ob-dots" id="ob-dots"></div>
@@ -113,6 +126,23 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Watchdog: if app.js (or one of its imports, e.g. the Firebase SDK) fails
+     to load at all — a flaky connection, a blocked CDN, etc. — this plain
+     inline script (no dependencies of its own) shows a friendly message
+     after a few seconds instead of leaving a blank/stuck splash screen
+     forever. app.js cancels it as soon as it successfully starts running. -->
+<script>
+  window.__blossomWatchdog = setTimeout(function () {
+    document.body.insertAdjacentHTML("beforeend",
+      '<div style="position:fixed;inset:0;z-index:999;background:#fbe4ec;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;font-family:-apple-system,sans-serif;">' +
+      '<div style="font-size:44px;margin-bottom:14px;">🌸</div>' +
+      '<h1 style="color:#6f4a5e;font-size:20px;margin:0 0 10px;">Having trouble connecting</h1>' +
+      '<p style="color:#9c6b84;font-size:14.5px;line-height:1.6;max-width:300px;margin:0 0 20px;">Blossom couldn\'t load just now — check your internet connection and try again.</p>' +
+      '<button onclick="location.reload()" style="background:linear-gradient(135deg,#f2a9c4,#d98fac);color:white;border:none;border-radius:999px;padding:14px 28px;font-size:15px;font-weight:700;">Reload</button>' +
+      "</div>"
+    );
+  }, 9000);
+</script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

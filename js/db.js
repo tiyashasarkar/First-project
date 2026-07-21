@@ -1,98 +1,72 @@
-// Tiny promise-based IndexedDB wrapper — no external libraries needed.
-// Stores: journals, pages, media (photo/audio blobs), kv (small settings)
+// Cloud data layer: journals/pages/media metadata live in Firestore, photo
+// bytes live in Firebase Storage — both scoped under the signed-in user's
+// own users/{uid} subtree. Every function here keeps the exact same name
+// and shape as the old local-only IndexedDB version, so none of the screen
+// files needed to change when this was swapped in.
 
-const DB_NAME = "blossom-journal";
-const DB_VERSION = 1;
-let dbPromise = null;
-
-function openDB() {
-  if (dbPromise) return dbPromise;
-  dbPromise = new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains("journals")) {
-        db.createObjectStore("journals", { keyPath: "id" });
-      }
-      if (!db.objectStoreNames.contains("pages")) {
-        const pages = db.createObjectStore("pages", { keyPath: "id" });
-        pages.createIndex("journalId", "journalId");
-        pages.createIndex("dateISO", "dateISO");
-      }
-      if (!db.objectStoreNames.contains("media")) {
-        db.createObjectStore("media", { keyPath: "id" });
-      }
-      if (!db.objectStoreNames.contains("kv")) {
-        db.createObjectStore("kv", { keyPath: "key" });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-  return dbPromise;
-}
-
-function tx(storeName, mode) {
-  return openDB().then(
-    (db) =>
-      new Promise((resolve, reject) => {
-        const t = db.transaction(storeName, mode);
-        const store = t.objectStore(storeName);
-        resolve({ t, store });
-      })
-  );
-}
-
-function wrapReq(req) {
-  return new Promise((resolve, reject) => {
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
+import {
+  collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+import {
+  ref, uploadBytes, getDownloadURL, deleteObject, listAll,
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js";
+import { auth, firestore, storage } from "./firebase.js";
 
 export const idgen = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 
+function uid() {
+  const u = auth.currentUser;
+  if (!u) throw new Error("Not signed in.");
+  return u.uid;
+}
+
+function colFor(storeName) {
+  return collection(firestore, "users", uid(), storeName);
+}
+
 export async function put(storeName, value) {
-  const { store, t } = await tx(storeName, "readwrite");
-  store.put(value);
-  return new Promise((resolve, reject) => {
-    t.oncomplete = () => resolve(value);
-    t.onerror = () => reject(t.error);
-  });
+  await setDoc(doc(colFor(storeName), value.id), value);
+  return value;
 }
 
 export async function get(storeName, id) {
-  const { store } = await tx(storeName, "readonly");
-  return wrapReq(store.get(id));
+  if (!id) return null;
+  const snap = await getDoc(doc(colFor(storeName), id));
+  return snap.exists() ? snap.data() : null;
 }
 
 export async function getAll(storeName) {
-  const { store } = await tx(storeName, "readonly");
-  return wrapReq(store.getAll());
+  const snap = await getDocs(colFor(storeName));
+  return snap.docs.map((d) => d.data());
 }
 
 export async function del(storeName, id) {
-  const { store, t } = await tx(storeName, "readwrite");
-  store.delete(id);
-  return new Promise((resolve, reject) => {
-    t.oncomplete = () => resolve();
-    t.onerror = () => reject(t.error);
-  });
+  await deleteDoc(doc(colFor(storeName), id));
 }
 
 export async function getByIndex(storeName, indexName, value) {
-  const { store } = await tx(storeName, "readonly");
-  return wrapReq(store.index(indexName).getAll(value));
+  const snap = await getDocs(query(colFor(storeName), where(indexName, "==", value)));
+  return snap.docs.map((d) => d.data());
 }
 
 // ---- small key/value settings store (onboarding flag, theme, etc.) ----
+// Kept in localStorage on purpose: per-device UI niceties, not memories,
+// so they don't need to round-trip to the cloud.
 export async function kvGet(key, fallback) {
-  const row = await get("kv", key);
-  return row ? row.value : fallback;
+  try {
+    const raw = localStorage.getItem("blossom_kv_" + key);
+    return raw === null ? fallback : JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
 }
 export async function kvSet(key, value) {
-  return put("kv", { key, value });
+  try {
+    localStorage.setItem("blossom_kv_" + key, JSON.stringify(value));
+  } catch {
+    // storage unavailable (private browsing etc.) — safe to ignore
+  }
 }
 
 // ---- domain helpers ----
@@ -127,20 +101,27 @@ export function pickCoverColor() {
   return palette[Math.floor(Math.random() * palette.length)];
 }
 
+function mediaStoragePath(mediaId) {
+  return `users/${uid()}/media/${mediaId}`;
+}
+
 export async function saveMediaBlob(blob) {
   const id = idgen();
-  await put("media", { id, blob, createdAt: Date.now() });
+  await uploadBytes(ref(storage, mediaStoragePath(id)), blob);
+  await setDoc(doc(colFor("media"), id), { id, createdAt: Date.now() });
   return id;
 }
 
 export async function getMediaURL(mediaId, cache) {
   if (!mediaId) return null;
   if (cache && cache.has(mediaId)) return cache.get(mediaId);
-  const row = await get("media", mediaId);
-  if (!row) return null;
-  const url = URL.createObjectURL(row.blob);
-  if (cache) cache.set(mediaId, url);
-  return url;
+  try {
+    const url = await getDownloadURL(ref(storage, mediaStoragePath(mediaId)));
+    if (cache) cache.set(mediaId, url);
+    return url;
+  } catch {
+    return null;
+  }
 }
 
 export async function savePage(page) {
@@ -193,21 +174,26 @@ export async function getAllPagesSorted() {
 }
 
 export async function exportAllData() {
-  const [journals, pages, media] = await Promise.all([
+  const [journals, pages, mediaMeta] = await Promise.all([
     getAll("journals"),
     getAll("pages"),
     getAll("media"),
   ]);
-  const mediaEncoded = await Promise.all(
-    media.map(
-      (m) =>
-        new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve({ id: m.id, dataUrl: reader.result, createdAt: m.createdAt });
-          reader.readAsDataURL(m.blob);
-        })
-    )
-  );
+  const mediaEncoded = [];
+  for (const m of mediaMeta) {
+    try {
+      const url = await getDownloadURL(ref(storage, mediaStoragePath(m.id)));
+      const blob = await (await fetch(url)).blob();
+      const dataUrl = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+      mediaEncoded.push({ id: m.id, dataUrl, createdAt: m.createdAt });
+    } catch {
+      // skip any media that failed to download rather than fail the whole backup
+    }
+  }
   return {
     app: "blossom-journal",
     exportedAt: new Date().toISOString(),
@@ -222,23 +208,36 @@ export async function importAllData(data) {
   if (!data || data.app !== "blossom-journal") throw new Error("This doesn't look like a Blossom backup file.");
   for (const m of data.media || []) {
     const blob = await (await fetch(m.dataUrl)).blob();
-    await put("media", { id: m.id, blob, createdAt: m.createdAt });
+    await uploadBytes(ref(storage, mediaStoragePath(m.id)), blob);
+    await setDoc(doc(colFor("media"), m.id), { id: m.id, createdAt: m.createdAt || Date.now() });
   }
   for (const j of data.journals || []) await put("journals", j);
   for (const p of data.pages || []) await put("pages", p);
 }
 
 export async function wipeAllData() {
-  const db = await openDB();
+  const [journals, pages, mediaMeta] = await Promise.all([
+    getAll("journals"),
+    getAll("pages"),
+    getAll("media"),
+  ]);
+  await Promise.all(journals.map((j) => del("journals", j.id)));
+  await Promise.all(pages.map((p) => del("pages", p.id)));
   await Promise.all(
-    ["journals", "pages", "media"].map(
-      (name) =>
-        new Promise((resolve, reject) => {
-          const t = db.transaction(name, "readwrite");
-          t.objectStore(name).clear();
-          t.oncomplete = resolve;
-          t.onerror = () => reject(t.error);
-        })
-    )
+    mediaMeta.map(async (m) => {
+      await del("media", m.id);
+      try {
+        await deleteObject(ref(storage, mediaStoragePath(m.id)));
+      } catch {
+        // already gone / never uploaded — fine
+      }
+    })
   );
+  // catch any storage objects not tracked in Firestore for some reason
+  try {
+    const folder = await listAll(ref(storage, `users/${uid()}/media`));
+    await Promise.all(folder.items.map((item) => deleteObject(item).catch(() => {})));
+  } catch {
+    // no media folder yet — fine
+  }
 }
