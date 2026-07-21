@@ -30,6 +30,19 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "addabb2d-9ac9-4359-88c7-f32e53bfefe5"
+      }
+    },
+    "owner": "tiyashasarkar-08s-team",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/addabb2d-9ac9-4359-88c7-f32e53bfefe5"
     }
   }
 }
