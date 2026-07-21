@@ -1,8 +1,8 @@
 // Blossom service worker — caches the app shell so it opens instantly
 // and works offline. Bump CACHE_NAME whenever app files change so old
 // devices pick up the new version.
-const CACHE_NAME = "blossom-v1";
-const FONT_CACHE = "blossom-fonts-v1";
+const CACHE_NAME = "blossom-v2";
+const EXTERNAL_CACHE = "blossom-external-v2";
 
 const APP_SHELL = [
   "./",
@@ -11,7 +11,11 @@ const APP_SHELL = [
   "./css/styles.css",
   "./js/app.js",
   "./js/db.js",
+  "./js/legacy-local-db.js",
+  "./js/firebase.js",
+  "./js/firebase-config.js",
   "./js/ui.js",
+  "./js/screens/auth.js",
   "./js/screens/home.js",
   "./js/screens/journals.js",
   "./js/screens/create.js",
@@ -40,7 +44,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME && k !== FONT_CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME && k !== EXTERNAL_CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -50,10 +54,19 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // Google Fonts: stale-while-revalidate so fonts still show up offline after first load.
-  if (url.hostname.includes("fonts.googleapis.com") || url.hostname.includes("fonts.gstatic.com")) {
+  // Google Fonts + the Firebase SDK: stale-while-revalidate so they still
+  // load offline after the first visit. Firestore/Storage/Auth network
+  // calls themselves are intentionally NOT cached here — Firestore has its
+  // own offline cache, and auth/data requests must always hit the network
+  // when available.
+  const isCacheableExternal =
+    url.hostname.includes("fonts.googleapis.com") ||
+    url.hostname.includes("fonts.gstatic.com") ||
+    (url.hostname === "www.gstatic.com" && url.pathname.includes("/firebasejs/"));
+
+  if (isCacheableExternal) {
     event.respondWith(
-      caches.open(FONT_CACHE).then(async (cache) => {
+      caches.open(EXTERNAL_CACHE).then(async (cache) => {
         const cached = await cache.match(req);
         const fetchPromise = fetch(req)
           .then((res) => {

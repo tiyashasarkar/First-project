@@ -799,6 +799,96 @@ a {
   flex-direction: column;
 }
 
+/* ---------------------------------------------------------------------- */
+/* Auth (sign in / create account)                                        */
+/* ---------------------------------------------------------------------- */
+
+#auth-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 350;
+  background: var(--grad-hero);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--safe-top) + 24px) 22px calc(var(--safe-bottom) + 24px);
+  overflow-y: auto;
+}
+
+#auth-screen.active {
+  display: flex;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--warm-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  padding: 28px 22px;
+}
+
+.auth-error {
+  background: #fbe4ec;
+  color: #b23a58;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+.auth-error.auth-success {
+  background: #e8f0e2;
+  color: #4f6b41;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Setup needed (Firebase not configured yet)                             */
+/* ---------------------------------------------------------------------- */
+
+#setup-needed {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  background: var(--grad-hero);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--safe-top) + 24px) 26px calc(var(--safe-bottom) + 24px);
+  text-align: center;
+}
+
+#setup-needed.active {
+  display: flex;
+}
+
+#setup-needed .emoji {
+  font-size: 48px;
+  margin-bottom: 14px;
+}
+
+#setup-needed h1 {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+#setup-needed p {
+  font-size: 14.5px;
+  color: var(--mauve);
+  line-height: 1.6;
+  max-width: 320px;
+}
+
+#setup-needed code {
+  background: rgba(255, 255, 255, 0.6);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
 #onboarding.active {
   display: flex;
 }
