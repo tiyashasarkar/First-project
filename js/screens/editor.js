@@ -104,12 +104,20 @@ async function buildInitialItems(template, files) {
   }
 
   const photoMeta = [];
+  let uploadFailed = false;
   for (const file of files) {
     const url = URL.createObjectURL(file);
     const { w, h } = await loadImageSize(url);
-    const mediaId = await db.saveMediaBlob(file);
+    try {
+      const mediaId = await db.saveMediaBlob(file);
+      photoMeta.push({ mediaId, aspect: w / h || 1 });
+    } catch {
+      uploadFailed = true;
+    }
     URL.revokeObjectURL(url);
-    photoMeta.push({ mediaId, aspect: w / h || 1 });
+  }
+  if (uploadFailed) {
+    showToast("Photo storage isn't set up yet on this account — see the README to add it. Continuing without photos for now.");
   }
 
   if (template === "daily") {
@@ -822,10 +830,19 @@ function wireChrome() {
   document.getElementById("ed-messy-circ").classList.toggle("on", ed.messy);
   document.getElementById("ed-add-photo").addEventListener("click", async () => {
     const files = await pickPhotosMulti();
+    let added = 0;
+    let uploadFailed = false;
     for (const [i, file] of files.entries()) {
       const url = URL.createObjectURL(file);
       const { w, h } = await loadImageSize(url);
-      const mediaId = await db.saveMediaBlob(file);
+      let mediaId;
+      try {
+        mediaId = await db.saveMediaBlob(file);
+      } catch {
+        uploadFailed = true;
+        URL.revokeObjectURL(url);
+        continue;
+      }
       ed.urlCache.set(mediaId, url);
       const width = 160;
       const item = {
@@ -836,11 +853,15 @@ function wireChrome() {
         rotation: ed.messy ? rand(-14, 14) : rand(-3, 3),
       };
       ed.items.push(item);
+      added++;
     }
-    if (files.length) {
+    if (added) {
       commitHistory();
       renderCanvas();
-      showToast(`Added ${files.length} photo${files.length > 1 ? "s" : ""} 🌸`);
+      showToast(`Added ${added} photo${added > 1 ? "s" : ""} 🌸`);
+    }
+    if (uploadFailed) {
+      showToast("Photo storage isn't set up yet on this account — see the README to add it.");
     }
   });
 }
