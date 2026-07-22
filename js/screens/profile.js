@@ -1,11 +1,15 @@
 import * as db from "../db.js";
 import { auth } from "../firebase.js";
 import { showToast, confirmAction, openSheet, closeSheet, escapeHtml } from "../ui.js";
+import { THEMES, getTheme, setTheme } from "../theme.js";
+import { mountMascot } from "../mascot.js";
 
 export async function renderProfile(container) {
   const journals = await db.getAll("journals");
   const pages = await db.getAll("pages");
   const email = auth.currentUser?.email || "";
+  const currentThemeId = (await getTheme()) || "blossom";
+  const currentTheme = THEMES.find((t) => t.id === currentThemeId) || THEMES[0];
 
   container.innerHTML = `
     <div class="topbar">
@@ -22,10 +26,11 @@ export async function renderProfile(container) {
       </div>
 
       <div class="settings-list">
-        <div class="settings-row">
-          <div class="si">🎨</div>
-          <div><div class="label">Theme</div><div class="sub">Soft Pink — more themes coming soon</div></div>
-        </div>
+        <button class="settings-row" id="pf-theme" style="width:100%;background:none;border:none;text-align:left;">
+          <div class="si">${currentTheme.emoji}</div>
+          <div><div class="label">Theme</div><div class="sub">${currentTheme.label} — tap to change</div></div>
+          <div class="chev">›</div>
+        </button>
         <button class="settings-row" id="pf-backup" style="width:100%;background:none;border:none;text-align:left;">
           <div class="si"><svg viewBox="0 0 24 24"><path d="M12 3v13M7 11l5 5 5-5"/><path d="M5 21h14"/></svg></div>
           <div><div class="label">Backup my memories</div><div class="sub">Save everything to a file you keep safe</div></div>
@@ -57,6 +62,7 @@ export async function renderProfile(container) {
     </div>
   `;
 
+  container.querySelector("#pf-theme").addEventListener("click", () => openThemeSheet(container));
   container.querySelector("#pf-backup").addEventListener("click", doBackup);
   container.querySelector("#pf-restore").addEventListener("click", doRestore);
   container.querySelector("#pf-signout").addEventListener("click", () => {
@@ -80,6 +86,37 @@ export async function renderProfile(container) {
       },
     });
   });
+}
+
+function openThemeSheet(container) {
+  openSheet({
+    title: "Choose your vibe",
+    html: `<div class="mode-list" id="theme-sheet-list" style="padding-bottom:6px;"></div>`,
+  });
+  (async () => {
+    const list = document.getElementById("theme-sheet-list");
+    const current = (await getTheme()) || "blossom";
+    THEMES.forEach((t) => {
+      const card = document.createElement("button");
+      card.className = "mode-card" + (t.id === current ? " selected" : "");
+      card.innerHTML = `
+        <div class="mc-emoji">${t.emoji}</div>
+        <div>
+          <div class="mc-title">${t.label}</div>
+          <div class="mc-tag">${t.tagline}</div>
+          <div class="mc-swatches">${t.swatches.map((c) => `<span style="background:${c}"></span>`).join("")}</div>
+        </div>
+        <div class="mc-check"></div>
+      `;
+      card.addEventListener("click", async () => {
+        await setTheme(t.id);
+        closeSheet();
+        mountMascot();
+        renderProfile(container);
+      });
+      list.appendChild(card);
+    });
+  })();
 }
 
 async function doBackup() {

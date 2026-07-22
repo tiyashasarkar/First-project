@@ -3,13 +3,16 @@ import * as db from "./db.js";
 import * as legacyDb from "./legacy-local-db.js";
 import { auth, isFirebaseConfigured } from "./firebase.js";
 import { showToast, openSheet, closeSheet } from "./ui.js";
+import { getTheme, applyTheme } from "./theme.js";
 import { renderAuth } from "./screens/auth.js";
+import { renderModePicker } from "./screens/mode-picker.js";
 import { renderHome } from "./screens/home.js";
 import { renderJournals, renderJournalDetail } from "./screens/journals.js";
 import { renderMemories } from "./screens/memories.js";
 import { renderProfile } from "./screens/profile.js";
 import { openCreateFlow } from "./screens/create.js";
 import { closeEditor } from "./screens/editor.js";
+import { mountMascot, unmountMascot, setMascotVisible } from "./mascot.js";
 
 // This module loading at all means every import above (including the
 // Firebase SDK) resolved successfully — cancel the connection-trouble
@@ -43,6 +46,7 @@ export async function navigate(name, params = {}) {
   const nav = document.getElementById("bottom-nav");
   nav.style.display = name === "editor" ? "none" : "flex";
   document.querySelectorAll(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.nav === target.nav));
+  setMascotVisible(name !== "editor");
 
   if (name === "home") await renderHome(document.getElementById("home-scroll"));
   else if (name === "journals") await renderJournals(document.getElementById("journals-scroll"));
@@ -151,16 +155,32 @@ function waitAtLeast(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function pickModeIfNeeded() {
+  const chosen = await getTheme();
+  if (chosen) return;
+  const picker = document.getElementById("mode-picker");
+  await new Promise((resolve) => {
+    renderModePicker(picker, () => {
+      picker.classList.remove("active");
+      resolve();
+    });
+    picker.classList.add("active");
+  });
+}
+
 async function showSignedInApp() {
   document.getElementById("auth-screen").classList.remove("active");
   document.getElementById("splash").classList.add("hidden");
   await offerLocalDataMigrationIfNeeded();
+  await pickModeIfNeeded();
   await seedIfEmpty();
   await runOnboardingIfNeeded();
   await navigate("home");
+  mountMascot();
 }
 
 async function showSignedOut() {
+  unmountMascot();
   document.getElementById("splash").classList.add("hidden");
   document.getElementById("onboarding").classList.remove("active");
   const authScreen = document.getElementById("auth-screen");
@@ -169,6 +189,11 @@ async function showSignedOut() {
 }
 
 async function init() {
+  // Apply any previously-chosen theme immediately, before anything else
+  // renders, so there's no flash of the default palette.
+  const savedTheme = await getTheme();
+  if (savedTheme) applyTheme(savedTheme);
+
   if (!isFirebaseConfigured) {
     document.getElementById("splash").classList.add("hidden");
     document.getElementById("setup-needed").classList.add("active");

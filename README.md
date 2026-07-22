@@ -8,12 +8,13 @@ A soft-pink, coquette-core scrapbook photo journal built as a Progressive Web Ap
 
 - Soft pink, coquette-core scrapbook design (script accents, lace trim, hand-drawn stickers), onboarding, splash screen
 - **Sign in / create account** — your memories are private to your account and sync everywhere you sign in
+- **Three color modes** — Blossom (soft pink), Glam Mode (bright pink & gold), Midnight Mode (dark navy & gold); pick one after signing in, change anytime in Profile. Each mode has its own tappable mascot in the corner — tap for a fun animation, double-tap to pick a different mascot
 - **Home** — recent memories, "On This Day", continue editing, quick create
 - **Journals** — create/rename/favorite/archive journals, each with its own cover and pages
 - **Create Memory** flow — Blank Page, Photo Dump, Daily Journal, Travel Journal, Letter to Future Self
-- **Freeform scrapbook canvas** — import photos from your library, drag/resize/rotate/layer them, add handwritten-style text, "Signature" hand-drawn stickers (bow, ribbon, pearls, and more) plus a big emoji sticker set, washi tape, and a movable/resizable calendar; undo/redo; pinch-to-zoom and pan; "Messy Mode" for playful scattered layouts
+- **Freeform scrapbook canvas** — import photos from your library, drag/resize/rotate/layer them; 6 fonts including several handwritten styles; "Signature" hand-drawn stickers (bow, ribbon, pearls, and more) plus a big emoji sticker set; washi tape; a movable/resizable calendar; 6 photo frame shapes (plain, rounded, circle, heart, torn-edge, polaroid); 4 page backgrounds (dotted, ruled, grid, blank); undo/redo; pinch-to-zoom and pan; "Messy Mode" for playful scattered layouts
 - **Memories** — chronological timeline, grouped by mood or place
-- **Profile** — sign out, backup your memories to a file, restore from a backup, erase data
+- **Profile** — switch color mode, sign out, backup your memories to a file, restore from a backup, erase data
 - Installable PWA with offline support, tuned for iPhone (safe areas, standalone mode, touch gestures)
 
 Not built yet (planned for later, per the original spec): audio/voice notes, time capsules, the memory map, PDF/slideshow export, and AI suggestions. Intentionally deferred so the core experience is solid first.

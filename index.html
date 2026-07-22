@@ -24,6 +24,15 @@
 </head>
 <body>
 
+<!-- Reusable clip-path shapes (heart photo frame) -->
+<svg width="0" height="0" style="position:absolute;">
+  <defs>
+    <clipPath id="blossom-heart-clip" clipPathUnits="objectBoundingBox">
+      <path d="M0.5,0.92 C0.18,0.66 0,0.44 0,0.27 C0,0.09 0.15,0 0.31,0 C0.43,0 0.5,0.08 0.5,0.19 C0.5,0.08 0.57,0 0.69,0 C0.85,0 1,0.09 1,0.27 C1,0.44 0.82,0.66 0.5,0.92 Z" />
+    </clipPath>
+  </defs>
+</svg>
+
 <!-- SPLASH -->
 <div id="splash">
   <svg class="blossom-mark" viewBox="0 0 100 100" fill="none">
@@ -52,6 +61,9 @@
 
 <!-- AUTH (sign in / create account) -->
 <div id="auth-screen"></div>
+
+<!-- MODE PICKER (choose color theme) -->
+<div id="mode-picker"></div>
 
 <!-- ONBOARDING -->
 <div id="onboarding">

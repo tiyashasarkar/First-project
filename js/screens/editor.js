@@ -1,5 +1,6 @@
 import * as db from "../db.js";
 import { openSheet, closeSheet, showToast, escapeHtml, MOODS } from "../ui.js";
+import { setMascotVisible } from "../mascot.js";
 
 const PAGE_W = 380;
 const PAGE_H = 507;
@@ -38,6 +39,8 @@ const TAPES = [
 const FONTS = [
   { id: "display", label: "Aa", family: "var(--font-display)", size: 20 },
   { id: "hand", label: "Aa", family: "var(--font-hand)", size: 26 },
+  { id: "hand2", label: "Aa", family: "var(--font-hand2)", size: 22 },
+  { id: "hand3", label: "Aa", family: "var(--font-hand3)", size: 24 },
   { id: "script", label: "Aa", family: "var(--font-script)", size: 30 },
   { id: "body", label: "Aa", family: "var(--font-body)", size: 16 },
 ];
@@ -193,6 +196,7 @@ export async function openEditor({ pageId, journalId, template = "blank", files 
       location: "",
       tags: "",
       template,
+      background: "dot",
       items,
     };
   }
@@ -215,6 +219,7 @@ export async function openEditor({ pageId, journalId, template = "blank", files 
   document.getElementById("bottom-nav").style.display = "none";
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   screenEl.classList.add("active");
+  setMascotVisible(false);
 
   await hydrateMedia();
   fitToViewport();
@@ -292,6 +297,7 @@ function applyStageTransform() {
 
 function renderCanvas() {
   const page = document.getElementById("ed-page");
+  page.className = `canvas-page bg-${ed.page.background || "dot"}`;
   page.innerHTML = "";
   ed.items.forEach((item, idx) => {
     item.z = idx;
@@ -304,7 +310,8 @@ function renderCanvas() {
 
 function createItemEl(item) {
   const el = document.createElement("div");
-  el.className = `c-item ${item.type}${item.frame === "polaroid" ? " polaroid" : ""}${ed.selectedId === item.id ? " selected" : ""}${item.locked ? " locked" : ""}`;
+  const frameClass = item.type === "photo" && item.frame && item.frame !== "plain" ? " " + item.frame : "";
+  el.className = `c-item ${item.type}${frameClass}${ed.selectedId === item.id ? " selected" : ""}${item.locked ? " locked" : ""}`;
   el.style.left = item.x + "px";
   el.style.top = item.y + "px";
   el.style.width = item.w + "px";
@@ -511,6 +518,7 @@ function updateItemToolbar() {
   bar.classList.add("show");
   bar.innerHTML = `
     ${item.type === "text" ? `<button id="it-edit" title="Edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3"/></svg></button>` : ""}
+    ${item.type === "photo" ? `<button id="it-frame" title="Frame"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 4v16M4 9h5"/></svg></button>` : ""}
     <button id="it-back" title="Send backward"><svg viewBox="0 0 24 24"><path d="M4 4h10v10H4z"/><path d="M10 10h10v10H10z"/></svg></button>
     <button id="it-fwd" title="Bring forward"><svg viewBox="0 0 24 24"><path d="M10 10h10v10H10z"/><path d="M4 4h10v10H4z" fill="none"/></svg></button>
     <button id="it-dup" title="Duplicate"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></button>
@@ -518,6 +526,7 @@ function updateItemToolbar() {
     <button id="it-del" title="Delete"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3m-9 0 1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13"/></svg></button>
   `;
   if (item.type === "text") document.getElementById("it-edit").addEventListener("click", () => openTextSheet(item));
+  if (item.type === "photo") document.getElementById("it-frame").addEventListener("click", () => openFrameSheet(item));
   document.getElementById("it-back").addEventListener("click", () => reorder(item, -1));
   document.getElementById("it-fwd").addEventListener("click", () => reorder(item, 1));
   document.getElementById("it-dup").addEventListener("click", () => duplicateItem(item));
@@ -757,6 +766,33 @@ function openTapeSheet() {
   });
 }
 
+const FRAMES = [
+  { id: "plain", label: "Plain" },
+  { id: "rounded", label: "Rounded" },
+  { id: "circle", label: "Circle" },
+  { id: "heart", label: "Heart" },
+  { id: "torn", label: "Torn" },
+  { id: "polaroid", label: "Polaroid" },
+];
+
+function openFrameSheet(item) {
+  openSheet({ title: "Choose a frame", html: `<div class="frame-grid" id="frame-grid"></div>` });
+  const grid = document.getElementById("frame-grid");
+  FRAMES.forEach((f) => {
+    const b = document.createElement("button");
+    b.className = `fg-${f.id}` + ((item.frame || "plain") === f.id ? " selected" : "");
+    b.innerHTML = `<div class="fg-swatch"></div><span class="fg-label">${f.label}</span>`;
+    b.addEventListener("click", () => {
+      item.frame = f.id;
+      commitHistory();
+      renderCanvas();
+      selectItem(item.id);
+      closeSheet();
+    });
+    grid.appendChild(b);
+  });
+}
+
 function openDetailsSheet() {
   openSheet({
     title: "Page details",
@@ -766,8 +802,27 @@ function openDetailsSheet() {
       <div class="field"><label>Mood</label><div class="mood-picker" id="dt-mood"></div></div>
       <div class="field"><label>Location (optional)</label><input type="text" id="dt-loc" value="${escapeHtml(ed.page.location || "")}" placeholder="e.g. Rome, Italy" /></div>
       <div class="field"><label>Tags (optional, comma separated)</label><input type="text" id="dt-tags" value="${escapeHtml(ed.page.tags || "")}" placeholder="friends, sunny, birthday" /></div>
+      <div class="field"><label>Page background</label><div class="page-style-grid" id="dt-bg"></div></div>
       <button class="btn btn-primary btn-block" id="dt-save">Save details</button>
     `,
+  });
+  const bgWrap = document.getElementById("dt-bg");
+  [
+    { id: "dot", label: "Dotted" },
+    { id: "ruled", label: "Ruled" },
+    { id: "grid", label: "Grid" },
+    { id: "blank", label: "Blank" },
+  ].forEach((style) => {
+    const b = document.createElement("button");
+    b.className = `canvas-page bg-${style.id}` + ((ed.page.background || "dot") === style.id ? " selected" : "");
+    b.innerHTML = `<span>${style.label}</span>`;
+    b.addEventListener("click", () => {
+      ed.page.background = style.id;
+      bgWrap.querySelectorAll("button").forEach((x) => x.classList.remove("selected"));
+      b.classList.add("selected");
+      document.getElementById("ed-page").className = `canvas-page bg-${style.id}`;
+    });
+    bgWrap.appendChild(b);
   });
   const moodWrap = document.getElementById("dt-mood");
   MOODS.forEach((m) => {
