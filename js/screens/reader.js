@@ -116,17 +116,38 @@ function setPageRotation(deg) {
   pageEl.style.transform = `rotate${currentAxis()}(${deg}deg)`;
 }
 
+const LOCK_SVG = `<svg viewBox="0 0 40 50"><rect x="4" y="20" width="32" height="26" rx="5" fill="#caa14a"/><rect x="4" y="20" width="32" height="8" rx="4" fill="#e8c98a"/><path d="M11 20 v-6 a9 9 0 0 1 18 0 v6" stroke="#b8933e" stroke-width="5" fill="none"/><circle cx="20" cy="33" r="4" fill="#7a5a1e"/><rect x="18.5" y="33" width="3" height="8" fill="#7a5a1e"/></svg>`;
+
 function renderBinding() {
+  const stage = document.getElementById("rd-stage");
   const binding = document.getElementById("rd-binding");
   const pagestack = document.getElementById("rd-pagestack");
   const ribbon = document.getElementById("rd-ribbon");
+  const lock = document.getElementById("rd-lock");
   if (!binding) return;
+
+  stage.className = "reader-stage style-" + state.style;
   binding.className = "reader-binding style-" + state.style;
-  binding.innerHTML = state.style === "scrapbook"
-    ? [18, 50, 82].map((t) => `<span class="ring" style="top:${t}%"></span>`).join("")
-    : "";
-  pagestack.style.display = state.style === "notepad" ? "none" : "block";
+
+  if (state.style === "scrapbook") {
+    binding.innerHTML = [16, 50, 84].map((t) => `<span class="ring" style="top:${t}%"></span>`).join("");
+  } else if (state.style === "notepad") {
+    const loops = 15;
+    binding.innerHTML = Array.from({ length: loops }, (_, i) => {
+      const pct = (100 / loops) * (i + 0.5);
+      const rot = i % 2 === 0 ? -9 : 9;
+      return `<span class="coil" style="left:${pct}%;transform:translateX(-50%) rotate(${rot}deg);"></span>`;
+    }).join("");
+  } else {
+    binding.innerHTML = "";
+  }
+
+  pagestack.className = "reader-pagestack style-" + state.style;
   ribbon.style.display = state.style === "diary" ? "block" : "none";
+  if (lock) {
+    lock.style.display = state.style === "diary" ? "block" : "none";
+    if (state.style === "diary" && !lock.innerHTML) lock.innerHTML = LOCK_SVG;
+  }
 }
 
 function buildShell() {
@@ -146,6 +167,7 @@ function buildShell() {
         <div class="reader-binding" id="rd-binding"></div>
         <div class="canvas-page" id="rd-page"></div>
         <div class="reader-ribbon" id="rd-ribbon"></div>
+        <div class="reader-lock" id="rd-lock"></div>
       </div>
       <button class="reader-navzone right" id="rd-navzone-next" aria-label="Next page"></button>
       <button class="reader-chevron left" id="rd-chevron-prev"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
@@ -189,6 +211,7 @@ function openStyleSheet() {
       await db.kvSet("readerStyle", state.style);
       applyOrigin();
       renderBinding();
+      if (state.index === -1) paintCover(document.getElementById("rd-page"));
       setPageRotation(0);
       closeSheet();
     });
@@ -211,18 +234,21 @@ function paintCover(pageEl) {
     renderStaticPage(pageEl, journal.cover, state.urlCache);
     return;
   }
-  pageEl.className = "canvas-page reader-fallback-cover";
+  pageEl.className = "canvas-page reader-fallback-cover style-" + state.style;
   pageEl.innerHTML = `<div class="reader-cover-title">${escapeHtml(journal.title || "Untitled Journal")}</div>`;
   const coverUrl = journal.coverMediaId && state.urlCache.get(journal.coverMediaId);
-  pageEl.style.background = coverUrl
-    ? `url('${coverUrl}') center/cover`
-    : (journal.coverColor || "linear-gradient(145deg,#f6c9d8,#d98fac)");
+  if (coverUrl) pageEl.style.background = `url('${coverUrl}') center/cover`;
+  else if (journal.coverColor) pageEl.style.background = journal.coverColor;
+  else pageEl.style.background = "";
 }
 
 function paintPage() {
   const pageEl = document.getElementById("rd-page");
   if (state.index === -1) paintCover(pageEl);
-  else renderStaticPage(pageEl, state.pages[state.index], state.urlCache);
+  else {
+    pageEl.style.background = "";
+    renderStaticPage(pageEl, state.pages[state.index], state.urlCache);
+  }
   setPageRotation(0);
   updateChrome();
 }
@@ -241,7 +267,7 @@ function waitForTransition(el) {
 async function flipTo(newIndex, direction) {
   if (!state || state.animating || newIndex < -1 || newIndex >= state.pages.length) return;
   state.animating = true;
-  playFlipSound();
+  playFlipSound(state.style);
 
   const pageEl = document.getElementById("rd-page");
   const sign = direction === "next" ? -1 : 1;
@@ -251,7 +277,10 @@ async function flipTo(newIndex, direction) {
   await waitForTransition(pageEl);
 
   if (newIndex === -1) paintCover(pageEl);
-  else renderStaticPage(pageEl, state.pages[newIndex], state.urlCache);
+  else {
+    pageEl.style.background = "";
+    renderStaticPage(pageEl, state.pages[newIndex], state.urlCache);
+  }
   state.index = newIndex;
   updateChrome();
 
@@ -265,33 +294,80 @@ async function flipTo(newIndex, direction) {
   state.animating = false;
 }
 
-function playFlipSound() {
+function noiseBuffer(ctx, duration) {
+  const bufferSize = Math.floor(ctx.sampleRate * duration);
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+  return buffer;
+}
+
+function playNoiseLayer(ctx, { duration, filterType, freqStart, freqMid, freqEnd, Q = 0.7, gainPeak = 0.4, attack = 0.03, startTime = 0 }) {
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuffer(ctx, duration);
+  const filter = ctx.createBiquadFilter();
+  filter.type = filterType;
+  filter.Q.value = Q;
+  const t0 = ctx.currentTime + startTime;
+  filter.frequency.setValueAtTime(freqStart, t0);
+  if (freqMid !== undefined) filter.frequency.exponentialRampToValueAtTime(freqMid, t0 + duration * 0.5);
+  filter.frequency.exponentialRampToValueAtTime(freqEnd, t0 + duration);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.001, t0);
+  gain.gain.linearRampToValueAtTime(gainPeak, t0 + attack);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  src.start(t0);
+  src.stop(t0 + duration + 0.02);
+  return t0 + duration;
+}
+
+function playTone(ctx, { freq, freqEnd, duration, gainPeak = 0.3, type = "sine", startTime = 0 }) {
+  const osc = ctx.createOscillator();
+  osc.type = type;
+  const t0 = ctx.currentTime + startTime;
+  osc.frequency.setValueAtTime(freq, t0);
+  if (freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, t0 + duration);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.001, t0);
+  gain.gain.linearRampToValueAtTime(gainPeak, t0 + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + duration + 0.02);
+  return t0 + duration;
+}
+
+// Each journal type gets its own page-turn character: Notepad is a crisp,
+// high flick with a tiny coil tick; Scrapbook a thicker riffle with a soft
+// metal ring clink; Diary a hushed, low-passed leather creak with a deep
+// thump; Flip Book a fuller two-layer paper flutter with a hardcover thud.
+function playFlipSound(style) {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     const ctx = new AudioCtx();
-    const duration = 0.22;
-    const bufferSize = Math.floor(ctx.sampleRate * duration);
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    const filter = ctx.createBiquadFilter();
-    filter.type = "bandpass";
-    filter.frequency.setValueAtTime(1200, ctx.currentTime);
-    filter.frequency.exponentialRampToValueAtTime(3500, ctx.currentTime + duration * 0.5);
-    filter.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + duration);
-    filter.Q.value = 0.7;
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.001, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.03);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-    src.connect(filter);
-    filter.connect(gain);
-    gain.connect(ctx.destination);
-    src.start();
-    src.stop(ctx.currentTime + duration + 0.02);
-    src.onended = () => ctx.close();
+    let end = ctx.currentTime;
+    const mark = (t) => { if (t > end) end = t; };
+
+    if (style === "notepad") {
+      mark(playNoiseLayer(ctx, { duration: 0.13, filterType: "bandpass", freqStart: 2600, freqMid: 5400, freqEnd: 2000, Q: 0.9, gainPeak: 0.4, attack: 0.01 }));
+      mark(playTone(ctx, { freq: 3400, freqEnd: 2800, duration: 0.05, gainPeak: 0.12, type: "square", startTime: 0.018 }));
+    } else if (style === "scrapbook") {
+      mark(playNoiseLayer(ctx, { duration: 0.26, filterType: "bandpass", freqStart: 1000, freqMid: 3000, freqEnd: 800, Q: 0.6, gainPeak: 0.46, attack: 0.03 }));
+      mark(playTone(ctx, { freq: 1900, freqEnd: 1500, duration: 0.22, gainPeak: 0.09, type: "sine", startTime: 0.05 }));
+    } else if (style === "diary") {
+      mark(playNoiseLayer(ctx, { duration: 0.3, filterType: "lowpass", freqStart: 900, freqMid: 500, freqEnd: 650, Q: 0.5, gainPeak: 0.38, attack: 0.05 }));
+      mark(playTone(ctx, { freq: 170, freqEnd: 85, duration: 0.16, gainPeak: 0.11, type: "sine", startTime: 0.03 }));
+    } else {
+      mark(playNoiseLayer(ctx, { duration: 0.22, filterType: "bandpass", freqStart: 1200, freqMid: 3500, freqEnd: 900, Q: 0.7, gainPeak: 0.42, attack: 0.03 }));
+      mark(playNoiseLayer(ctx, { duration: 0.16, filterType: "bandpass", freqStart: 1600, freqMid: 4200, freqEnd: 1200, Q: 0.9, gainPeak: 0.24, attack: 0.02, startTime: 0.05 }));
+      mark(playTone(ctx, { freq: 130, freqEnd: 70, duration: 0.14, gainPeak: 0.13, type: "sine", startTime: 0.01 }));
+    }
+
+    setTimeout(() => ctx.close(), (end - ctx.currentTime) * 1000 + 100);
   } catch {
     // Web Audio unavailable — reading still works, just silently
   }
