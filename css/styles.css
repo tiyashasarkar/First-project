@@ -1263,6 +1263,25 @@ a {
   gap: 4px;
 }
 
+/* On narrow screens the Curate sidebar is hidden and its settings live in
+   a sheet instead — this little chip is the only hint that tapping the
+   title opens it, so make it explicit rather than relying on people
+   guessing the title bar is tappable. Hidden once the sidebar itself is
+   visible, since "Curate" is already labeled there. */
+.ed-curate-hint {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--dusty-rose);
+  margin-top: 1px;
+}
+
+@media (min-width: 860px) {
+  .ed-curate-hint {
+    display: none;
+  }
+}
+
 .editor-body {
   flex: 1;
   display: flex;
@@ -2070,6 +2089,32 @@ a {
   transform: scale(0.9);
 }
 
+/* On the narrowest phones (iPhone SE and similar), shrink the FAB row just
+   enough that all 6 tools fit without scrolling or spilling past the
+   screen edge. */
+@media (max-width: 359px) {
+  .editor-fabbar {
+    gap: 0;
+    padding-left: 3px;
+    padding-right: 3px;
+  }
+
+  .efab {
+    min-width: 44px;
+    font-size: 9px;
+  }
+
+  .efab .circ {
+    width: 36px;
+    height: 36px;
+  }
+
+  .efab .circ svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
 .sticker-grid,
 .tape-grid {
   display: grid;
@@ -2168,7 +2213,8 @@ a {
 
 .mood-picker {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 6px 4px;
 }
 
@@ -2177,6 +2223,7 @@ a {
   width: 42px;
   height: 42px;
   border-radius: 50%;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
