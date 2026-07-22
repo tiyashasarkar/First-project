@@ -489,6 +489,7 @@ function buildShell() {
       <button id="ed-title-btn" style="flex:1;min-width:0;text-align:center;padding:6px;">
         <div style="font-family:var(--font-display);font-weight:600;font-size:15px;color:var(--mauve-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="ed-title-txt"></div>
         <div style="font-size:10.5px;color:var(--ink-soft);" id="ed-date-txt"></div>
+        <div class="ed-curate-hint">🎨 Curate</div>
       </button>
       <div class="grp">
         <button class="icon-btn" id="ed-music"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></button>
