@@ -1924,8 +1924,8 @@ a {
 
 .signature-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
   padding: 4px 0 14px;
 }
 
@@ -1936,7 +1936,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px;
+  padding: 11px;
 }
 
 .signature-grid button svg {
@@ -2775,16 +2775,6 @@ button.settings-row:active {
   font-size: 20px;
   z-index: 500;
   pointer-events: none;
-}
-
-.glam-flyover {
-  position: fixed;
-  left: 0;
-  top: 0;
-  font-size: 30px;
-  z-index: 500;
-  pointer-events: none;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .glam-kiss-mark {

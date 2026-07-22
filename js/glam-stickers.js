@@ -53,10 +53,6 @@ const STICKERS = [
     svg: `<svg viewBox="0 0 100 100"><path d="M28 35 C33 24 45 25 48 38 C51 25 63 24 68 35" stroke="#ff2f92" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M22 40 C10 40 8 55 15 62 C22 69 34 66 36 55 C38 46 30 40 22 40 Z" fill="#ff2f92"/><path d="M74 40 C86 40 88 55 81 62 C74 69 62 66 60 55 C58 46 66 40 74 40 Z" fill="#ff2f92"/></svg>`,
   },
   {
-    id: "car", run: runCar,
-    svg: `<svg viewBox="0 0 100 100"><path d="M10 62 h80 v10 a4 4 0 0 1-4 4 H14 a4 4 0 0 1-4-4 Z" fill="#ff2f92"/><path d="M16 62 C18 44 30 38 50 38 C68 38 80 46 84 62 Z" fill="#ff6fc0"/><circle cx="28" cy="76" r="9" fill="#3a1a40"/><circle cx="72" cy="76" r="9" fill="#3a1a40"/><circle cx="28" cy="76" r="4" fill="#fff"/><circle cx="72" cy="76" r="4" fill="#fff"/></svg>`,
-  },
-  {
     id: "perfume", run: runPerfume,
     svg: `<svg viewBox="0 0 100 100"><rect x="40" y="8" width="20" height="14" rx="3" fill="#7a1054"/><rect x="46" y="2" width="8" height="8" rx="2" fill="#3a1a40"/><path d="M32 22 h36 l4 14 v50 a6 6 0 0 1-6 6 H34 a6 6 0 0 1-6-6 V36 Z" fill="#fff"/><path d="M36 40 h28 v40 a4 4 0 0 1-4 4 H40 a4 4 0 0 1-4-4 Z" fill="#ff6fc0"/></svg>`,
   },
@@ -78,7 +74,6 @@ const MESSAGES = {
   plane: ["WISH YOU WERE HERE 💌", "NEXT STOP: SOMEWHERE MAGICAL.", "PACK LIGHT, DREAM BIG.", "JETTING OFF INTO A NEW CHAPTER.", "ADVENTURE MODE: ACTIVATED ✈️"],
   mic: ["YOUR TURN 🎤 — write today's caption", "Spotlight's on you.", "Say something worth remembering.", "Mic drop moment incoming.", "This page is your stage."],
   sunglasses: ["TOO ICONIC TO EXPLAIN 😎", "Too cool to care.", "Main character sunglasses, activated.", "Certified icon behavior.", "Shady, in the best way."],
-  car: ["SHE DROVE OFF INTO HER ERA.", "Windows down, worries gone.", "New scenery, new energy.", "Off to somewhere better.", "Plot device: a really good drive."],
   perfume: ["SMELLS LIKE MAIN CHARACTER ENERGY", "A little spritz of confidence.", "Signature scent, signature era.", "Smells like a good decision.", "One spray, whole new mood."],
   purse: ["EVERYTHING SHE NEEDS, NOTHING SHE DOESN'T.", "IT MATCHES THE VIBE.", "GRAB IT AND GO.", "PACKED FOR WHATEVER TODAY BRINGS.", "ESSENTIALS ONLY, DARLING."],
   celebrate: ["GLAM WORLD: ACTIVATED 🎀"],
@@ -397,31 +392,9 @@ function runMic(btn) {
   showToast(pick("mic"));
 }
 
-function driveOff(emoji, message) {
-  const el = document.createElement("div");
-  el.className = "glam-flyover";
-  el.textContent = emoji;
-  el.style.top = (window.innerHeight - 90) + "px";
-  document.body.appendChild(el);
-  el.animate(
-    [
-      { transform: "translateX(-10vw) scaleX(1)" },
-      { transform: "translateX(55vw) scaleX(1.15)" },
-      { transform: "translateX(120vw) scaleX(1)" },
-    ],
-    { duration: 900, easing: "cubic-bezier(.55,0,1,.45)" }
-  ).onfinish = () => el.remove();
-  if (message) setTimeout(() => showToast(message), 250);
-}
-
 function runSunglasses(btn) {
   bump(btn);
   showToast(pick("sunglasses"));
-}
-
-function runCar(btn) {
-  bump(btn);
-  driveOff("🚗", pick("car"));
 }
 
 function runPerfume(btn) {
