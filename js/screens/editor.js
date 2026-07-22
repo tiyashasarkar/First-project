@@ -47,6 +47,27 @@ const FONTS = [
   { id: "body", label: "Aa", family: "var(--font-body)", size: 16 },
 ];
 const TEXT_COLORS = ["#4a3b42", "#9c6b84", "#c94f6a", "#a97142", "#6f8a63", "#fffdfb"];
+const BACKGROUNDS = [
+  { id: "dot", label: "Dotted" },
+  { id: "ruled", label: "Lined" },
+  { id: "whimsical", label: "Whimsical" },
+  { id: "vintage", label: "Vintage" },
+  { id: "grid", label: "Grid" },
+  { id: "blank", label: "Blank" },
+  { id: "custom", label: "Custom color" },
+];
+
+function parseSpotifyLink(url) {
+  try {
+    const u = new URL(url);
+    if (!u.hostname.includes("spotify.com")) return null;
+    const m = u.pathname.match(/\/(track|playlist|album|episode|show)\/([a-zA-Z0-9]+)/);
+    if (!m) return null;
+    return { kind: m[1], id: m[2] };
+  } catch {
+    return null;
+  }
+}
 
 const PROMPTS = {
   daily: "What happened today?\n\n",
@@ -228,6 +249,9 @@ export async function openEditor({ pageId, journalId, template = "blank", files 
   renderCanvas();
   wireChrome();
   wireViewportGestures();
+  renderPageSettings(document.getElementById("ed-sidebar-content"));
+
+  window.addEventListener("resize", onEditorResize);
 
   updateMusicUI();
   if (ed.page.audio) {
@@ -238,7 +262,17 @@ export async function openEditor({ pageId, journalId, template = "blank", files 
   }
 }
 
+let resizeTimer = null;
+function onEditorResize() {
+  // The sidebar shows/hides at a CSS breakpoint, changing how much width
+  // the canvas viewport actually has — re-fit so it stays "fitted" rather
+  // than clipped/tiny after a window resize or iPad rotation.
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (ed) fitToViewport(); }, 150);
+}
+
 export function closeEditor() {
+  window.removeEventListener("resize", onEditorResize);
   stopPageAudio();
   if (ed && !ed.saved) {
     persist().catch(() => {});
@@ -263,14 +297,21 @@ function buildShell() {
         <button class="icon-btn" id="ed-done" style="background:var(--grad-fab);"><svg viewBox="0 0 24 24" style="stroke:white;"><path d="M4 12l5 5L20 6"/></svg></button>
       </div>
     </div>
-    <div class="editor-viewport" id="ed-viewport">
-      <div class="canvas-stage" id="ed-stage">
-        <div class="canvas-page" id="ed-page"></div>
+    <div class="editor-body">
+      <div class="editor-viewport" id="ed-viewport">
+        <div class="canvas-stage" id="ed-stage">
+          <div class="canvas-page" id="ed-page"></div>
+        </div>
+        <button class="music-toggle-pill hidden" id="ed-music-toggle">
+          <span class="mtp-icon" id="ed-music-icon">▶</span>
+          <span class="mtp-label" id="ed-music-label"></span>
+        </button>
+        <div class="spotify-card hidden" id="ed-spotify-card"></div>
       </div>
-      <button class="music-toggle-pill hidden" id="ed-music-toggle">
-        <span class="mtp-icon" id="ed-music-icon">▶</span>
-        <span class="mtp-label" id="ed-music-label"></span>
-      </button>
+      <aside class="editor-sidebar" id="ed-sidebar">
+        <h3>Page settings</h3>
+        <div id="ed-sidebar-content"></div>
+      </aside>
     </div>
     <div class="editor-fabbar">
       <button class="efab" id="ed-add-photo"><div class="circ"><svg viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-2h7l1 2H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg></div><span>Photo</span></button>
@@ -286,7 +327,7 @@ function buildShell() {
 
 async function hydrateMedia() {
   for (const item of ed.items) {
-    if (item.type === "photo" && item.mediaId) {
+    if ((item.type === "photo" || item.type === "sticker") && item.mediaId) {
       await db.getMediaURL(item.mediaId, ed.urlCache);
     }
   }
@@ -311,9 +352,16 @@ function applyStageTransform() {
 // Rendering
 // ---------------------------------------------------------------------
 
+function applyPageBackground() {
+  const page = document.getElementById("ed-page");
+  if (!page) return;
+  page.className = `canvas-page bg-${ed.page.background || "dot"}`;
+  page.style.backgroundColor = ed.page.background === "custom" && ed.page.bgColor ? ed.page.bgColor : "";
+}
+
 function renderCanvas() {
   const page = document.getElementById("ed-page");
-  page.className = `canvas-page bg-${ed.page.background || "dot"}`;
+  applyPageBackground();
   page.innerHTML = "";
   ed.items.forEach((item, idx) => {
     item.z = idx;
@@ -351,7 +399,15 @@ function createItemEl(item) {
     body.style.color = item.color || "#4a3b42";
     body.textContent = item.text || "";
   } else if (item.type === "sticker") {
-    if (item.svg) {
+    if (item.mediaId) {
+      const img = document.createElement("img");
+      img.src = ed.urlCache.get(item.mediaId) || "";
+      img.draggable = false;
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "contain";
+      body.appendChild(img);
+    } else if (item.svg) {
       body.innerHTML = item.svg;
       const svgEl = body.querySelector("svg");
       if (svgEl) { svgEl.style.width = "100%"; svgEl.style.height = "100%"; svgEl.style.display = "block"; }
@@ -582,6 +638,7 @@ function addItem(partial) {
   commitHistory();
   renderCanvas();
   selectItem(item.id);
+  return item;
 }
 
 // ---------------------------------------------------------------------
@@ -711,9 +768,14 @@ function openStickerSheet() {
       <div class="segmented" style="margin-bottom:12px;">
         <button data-tab="signature" class="active">Signature</button>
         <button data-tab="emoji">Emoji</button>
+        <button data-tab="yours">Yours</button>
       </div>
       <div class="signature-grid" id="st-signature"></div>
       <div class="sticker-grid hidden" id="st-emoji"></div>
+      <div class="hidden" id="st-yours">
+        <button class="btn btn-primary btn-block" id="st-upload-btn">📷 Upload from gallery</button>
+        <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;text-align:center;">Any photo works — it'll drop onto the page as a movable, resizable sticker.</p>
+      </div>
     `,
   });
   const sigGrid = document.getElementById("st-signature");
@@ -737,12 +799,36 @@ function openStickerSheet() {
     });
     emojiGrid.appendChild(b);
   });
+
+  const yoursPanel = document.getElementById("st-yours");
+  document.getElementById("st-upload-btn").addEventListener("click", async () => {
+    const files = await pickPhotosMulti();
+    if (!files.length) return;
+    closeSheet();
+    let added = 0;
+    for (const file of files) {
+      const url = URL.createObjectURL(file);
+      const { w, h } = await loadImageSize(url);
+      try {
+        const mediaId = await db.saveMediaBlob(file);
+        ed.urlCache.set(mediaId, url);
+        const width = 130;
+        addItem({ type: "sticker", mediaId, w: width, h: width / (w / h || 1) });
+        added++;
+      } catch {
+        URL.revokeObjectURL(url);
+      }
+    }
+    if (added) showToast(`Added ${added} sticker${added > 1 ? "s" : ""} from your gallery 📷`);
+  });
+
   document.querySelectorAll('.sheet [data-tab]').forEach((btn) => {
     btn.addEventListener("click", () => {
       document.querySelectorAll('.sheet [data-tab]').forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       sigGrid.classList.toggle("hidden", btn.dataset.tab !== "signature");
       emojiGrid.classList.toggle("hidden", btn.dataset.tab !== "emoji");
+      yoursPanel.classList.toggle("hidden", btn.dataset.tab !== "yours");
     });
   });
 }
@@ -765,8 +851,11 @@ function openCalendarSheet() {
       year = y;
       month = m - 1;
     }
-    closeSheet();
-    addItem({ type: "calendar", year, month, calStyle: "classic", w: 230, h: 260, rotation: 0 });
+    const item = addItem({ type: "calendar", year, month, calStyle: "classic", w: 230, h: 260, rotation: 0 });
+    // Jump straight into style picking so the 5 calendar looks are
+    // immediately obvious, instead of requiring the user to know they
+    // need to tap the item afterward to find the Style button.
+    openCalendarStyleSheet(item);
   });
 }
 
@@ -799,7 +888,7 @@ function openCalendarStyleSheet(item) {
   });
 }
 
-function pickAndUploadAudio() {
+function pickAndUploadAudio(container) {
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "audio/*";
@@ -809,12 +898,12 @@ function pickAndUploadAudio() {
     const file = input.files && input.files[0];
     document.body.removeChild(input);
     if (!file) return;
-    closeSheet();
     showToast("Adding your clip…");
     try {
       const mediaId = await db.saveAudioBlob(file);
       ed.page.audio = { type: "upload", mediaId };
       updateMusicUI();
+      renderMusicSection(container);
       await playPageAudio(ed.page.audio, ed.urlCache);
       updateMusicUI();
       showToast("Music added 🎵");
@@ -825,26 +914,26 @@ function pickAndUploadAudio() {
   input.click();
 }
 
-function openMusicSheet() {
+function renderMusicSection(container) {
   const current = ed.page.audio;
-  openSheet({
-    title: "Add music",
-    html: `
-      <div class="field"><button class="btn btn-secondary btn-block" id="mu-upload">🎙️ Upload a clip</button></div>
-      <div class="field"><label>Or pick a vibe</label><div class="vibe-grid" id="mu-vibes"></div></div>
-      ${current ? `<button class="btn btn-block" id="mu-remove" style="color:#c94f6a;margin-top:4px;">Remove music</button>` : ""}
-    `,
-  });
-  document.getElementById("mu-upload").addEventListener("click", pickAndUploadAudio);
-  const grid = document.getElementById("mu-vibes");
+  container.innerHTML = `
+    <div class="vibe-grid" data-f="vibes"></div>
+    <button class="btn btn-secondary btn-block" data-f="upload" style="margin-top:8px;">🎙️ Upload a clip</button>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <input type="text" data-f="spotify-input" placeholder="Paste a Spotify link…" style="flex:1;min-width:0;" />
+      <button class="btn btn-primary" data-f="spotify-add">Add</button>
+    </div>
+    ${current ? `<button class="btn btn-block" data-f="remove" style="color:#c94f6a;margin-top:8px;">Remove music</button>` : ""}
+  `;
+  const grid = container.querySelector('[data-f="vibes"]');
   VIBES.forEach((v) => {
     const b = document.createElement("button");
     b.className = "vibe-swatch" + (current?.type === "vibe" && current.vibeId === v.id ? " selected" : "");
     b.innerHTML = `<span class="vibe-note">♪</span><span>${v.label}</span>`;
     b.addEventListener("click", async () => {
       ed.page.audio = { type: "vibe", vibeId: v.id };
-      closeSheet();
       updateMusicUI();
+      renderMusicSection(container);
       showToast(`${v.label} vibe added 🎵`);
       try {
         await playPageAudio(ed.page.audio, ed.urlCache);
@@ -854,12 +943,27 @@ function openMusicSheet() {
     });
     grid.appendChild(b);
   });
-  if (current) {
-    document.getElementById("mu-remove").addEventListener("click", () => {
+  container.querySelector('[data-f="upload"]').addEventListener("click", () => pickAndUploadAudio(container));
+  container.querySelector('[data-f="spotify-add"]').addEventListener("click", () => {
+    const input = container.querySelector('[data-f="spotify-input"]');
+    const parsed = parseSpotifyLink(input.value.trim());
+    if (!parsed) {
+      showToast("That doesn't look like a Spotify link — copy it from the Share menu.");
+      return;
+    }
+    stopPageAudio();
+    ed.page.audio = { type: "spotify", kind: parsed.kind, id: parsed.id };
+    updateMusicUI();
+    renderMusicSection(container);
+    showToast("Spotify link added 🎧");
+  });
+  const removeBtn = container.querySelector('[data-f="remove"]');
+  if (removeBtn) {
+    removeBtn.addEventListener("click", () => {
       stopPageAudio();
       ed.page.audio = null;
-      closeSheet();
       updateMusicUI();
+      renderMusicSection(container);
       showToast("Music removed");
     });
   }
@@ -867,12 +971,38 @@ function openMusicSheet() {
 
 function updateMusicUI() {
   const pill = document.getElementById("ed-music-toggle");
-  if (!pill || !ed) return;
+  const spotifyCard = document.getElementById("ed-spotify-card");
+  if (!pill || !spotifyCard || !ed) return;
   const audio = ed.page.audio;
+
   if (!audio) {
     pill.classList.add("hidden");
+    spotifyCard.classList.add("hidden");
+    spotifyCard.innerHTML = "";
     return;
   }
+
+  if (audio.type === "spotify") {
+    pill.classList.add("hidden");
+    spotifyCard.classList.remove("hidden");
+    const key = audio.kind + ":" + audio.id;
+    if (spotifyCard.dataset.key !== key) {
+      spotifyCard.dataset.key = key;
+      spotifyCard.innerHTML = `
+        <div class="spotify-card-head"><span>🎧 Spotify</span><button id="ed-spotify-remove" title="Remove">✕</button></div>
+        <iframe src="https://open.spotify.com/embed/${audio.kind}/${audio.id}?utm_source=generator" width="100%" height="152" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+      `;
+      document.getElementById("ed-spotify-remove").addEventListener("click", () => {
+        ed.page.audio = null;
+        updateMusicUI();
+      });
+    }
+    return;
+  }
+
+  spotifyCard.classList.add("hidden");
+  spotifyCard.innerHTML = "";
+  spotifyCard.dataset.key = "";
   pill.classList.remove("hidden");
   const label = audio.type === "vibe" ? (VIBES.find((v) => v.id === audio.vibeId)?.label || "Vibe") : "Your clip";
   const nowPlaying = isCurrentlyPlaying(audio);
@@ -923,38 +1053,39 @@ function openFrameSheet(item) {
   });
 }
 
-function openDetailsSheet() {
-  openSheet({
-    title: "Page details",
-    html: `
-      <div class="field"><label>Title</label><input type="text" id="dt-title" value="${escapeHtml(ed.page.title || "")}" maxlength="50" /></div>
-      <div class="field"><label>Date</label><input type="date" id="dt-date" value="${ed.page.dateISO || ""}" /></div>
-      <div class="field"><label>Mood</label><div class="mood-picker" id="dt-mood"></div></div>
-      <div class="field"><label>Location (optional)</label><input type="text" id="dt-loc" value="${escapeHtml(ed.page.location || "")}" placeholder="e.g. Rome, Italy" /></div>
-      <div class="field"><label>Tags (optional, comma separated)</label><input type="text" id="dt-tags" value="${escapeHtml(ed.page.tags || "")}" placeholder="friends, sunny, birthday" /></div>
-      <div class="field"><label>Page background</label><div class="page-style-grid" id="dt-bg"></div></div>
-      <button class="btn btn-primary btn-block" id="dt-save">Save details</button>
-    `,
+function openPageSettingsSheet() {
+  openSheet({ title: "Page settings", html: `<div id="ps-sheet-body"></div>` });
+  renderPageSettings(document.getElementById("ps-sheet-body"));
+}
+
+function renderPageSettings(container) {
+  container.innerHTML = `
+    <div class="field"><label>Title</label><input type="text" data-f="title" value="${escapeHtml(ed.page.title || "")}" maxlength="50" /></div>
+    <div class="field"><label>Date</label><input type="date" data-f="date" value="${ed.page.dateISO || ""}" /></div>
+    <div class="field"><label>Mood</label><div class="mood-picker" data-f="mood"></div></div>
+    <div class="field"><label>Location (optional)</label><input type="text" data-f="loc" value="${escapeHtml(ed.page.location || "")}" placeholder="e.g. Rome, Italy" /></div>
+    <div class="field"><label>Tags (optional, comma separated)</label><input type="text" data-f="tags" value="${escapeHtml(ed.page.tags || "")}" placeholder="friends, sunny, birthday" /></div>
+    <div class="field"><label>Page style</label><div class="page-style-grid" data-f="bg"></div></div>
+    <div class="field${ed.page.background === "custom" ? "" : " hidden"}" data-f="colorField"><label>Page color</label><input type="color" data-f="bgColor" value="${ed.page.bgColor || "#fbe6ec"}" /></div>
+    <div class="field"><label>Music</label><div data-f="music"></div></div>
+  `;
+
+  const titleInput = container.querySelector('[data-f="title"]');
+  titleInput.addEventListener("input", () => {
+    ed.page.title = titleInput.value.trim() || "Untitled";
+    updateTitleBits();
   });
-  const bgWrap = document.getElementById("dt-bg");
-  [
-    { id: "dot", label: "Dotted" },
-    { id: "ruled", label: "Ruled" },
-    { id: "grid", label: "Grid" },
-    { id: "blank", label: "Blank" },
-  ].forEach((style) => {
-    const b = document.createElement("button");
-    b.className = `canvas-page bg-${style.id}` + ((ed.page.background || "dot") === style.id ? " selected" : "");
-    b.innerHTML = `<span>${style.label}</span>`;
-    b.addEventListener("click", () => {
-      ed.page.background = style.id;
-      bgWrap.querySelectorAll("button").forEach((x) => x.classList.remove("selected"));
-      b.classList.add("selected");
-      document.getElementById("ed-page").className = `canvas-page bg-${style.id}`;
-    });
-    bgWrap.appendChild(b);
+  const dateInput = container.querySelector('[data-f="date"]');
+  dateInput.addEventListener("change", () => {
+    ed.page.dateISO = dateInput.value || ed.page.dateISO;
+    updateTitleBits();
   });
-  const moodWrap = document.getElementById("dt-mood");
+  const locInput = container.querySelector('[data-f="loc"]');
+  locInput.addEventListener("input", () => { ed.page.location = locInput.value.trim(); });
+  const tagsInput = container.querySelector('[data-f="tags"]');
+  tagsInput.addEventListener("input", () => { ed.page.tags = tagsInput.value.trim(); });
+
+  const moodWrap = container.querySelector('[data-f="mood"]');
   MOODS.forEach((m) => {
     const b = document.createElement("button");
     b.textContent = m;
@@ -963,17 +1094,33 @@ function openDetailsSheet() {
       ed.page.mood = ed.page.mood === m ? "" : m;
       [...moodWrap.children].forEach((c) => c.classList.remove("selected"));
       if (ed.page.mood) b.classList.add("selected");
+      updateTitleBits();
     });
     moodWrap.appendChild(b);
   });
-  document.getElementById("dt-save").addEventListener("click", () => {
-    ed.page.title = document.getElementById("dt-title").value.trim() || "Untitled";
-    ed.page.dateISO = document.getElementById("dt-date").value || ed.page.dateISO;
-    ed.page.location = document.getElementById("dt-loc").value.trim();
-    ed.page.tags = document.getElementById("dt-tags").value.trim();
-    closeSheet();
-    updateTitleBits();
+
+  const bgWrap = container.querySelector('[data-f="bg"]');
+  const colorField = container.querySelector('[data-f="colorField"]');
+  BACKGROUNDS.forEach((style) => {
+    const b = document.createElement("button");
+    b.className = `canvas-page bg-${style.id}` + ((ed.page.background || "dot") === style.id ? " selected" : "");
+    b.innerHTML = `<span>${style.label}</span>`;
+    b.addEventListener("click", () => {
+      ed.page.background = style.id;
+      bgWrap.querySelectorAll("button").forEach((x) => x.classList.remove("selected"));
+      b.classList.add("selected");
+      colorField.classList.toggle("hidden", style.id !== "custom");
+      applyPageBackground();
+    });
+    bgWrap.appendChild(b);
   });
+  const colorInput = container.querySelector('[data-f="bgColor"]');
+  colorInput.addEventListener("input", () => {
+    ed.page.bgColor = colorInput.value;
+    applyPageBackground();
+  });
+
+  renderMusicSection(container.querySelector('[data-f="music"]'));
 }
 
 // ---------------------------------------------------------------------
@@ -1000,14 +1147,14 @@ function pickPhotosMulti() {
 function wireChrome() {
   document.getElementById("ed-back").addEventListener("click", () => finishAndLeave());
   document.getElementById("ed-done").addEventListener("click", () => finishAndLeave());
-  document.getElementById("ed-title-btn").addEventListener("click", openDetailsSheet);
+  document.getElementById("ed-title-btn").addEventListener("click", openPageSettingsSheet);
   document.getElementById("ed-undo").addEventListener("click", undo);
   document.getElementById("ed-redo").addEventListener("click", redo);
   document.getElementById("ed-add-text").addEventListener("click", () => openTextSheet(null));
   document.getElementById("ed-add-sticker").addEventListener("click", openStickerSheet);
   document.getElementById("ed-add-tape").addEventListener("click", openTapeSheet);
   document.getElementById("ed-add-calendar").addEventListener("click", openCalendarSheet);
-  document.getElementById("ed-music").addEventListener("click", openMusicSheet);
+  document.getElementById("ed-music").addEventListener("click", openPageSettingsSheet);
   document.getElementById("ed-music-toggle").addEventListener("click", async () => {
     await togglePageAudio(ed.page.audio, ed.urlCache);
     updateMusicUI();
@@ -1070,6 +1217,7 @@ async function persist() {
 }
 
 async function finishAndLeave() {
+  window.removeEventListener("resize", onEditorResize);
   stopPageAudio();
   await persist();
   const rs = returnScreen;
