@@ -13,6 +13,7 @@ import { renderProfile } from "./screens/profile.js";
 import { openCreateFlow } from "./screens/create.js";
 import { closeEditor } from "./screens/editor.js";
 import { mountMascot, unmountMascot, setMascotVisible } from "./mascot.js";
+import { mountAssistant, unmountAssistant } from "./assistant.js";
 
 // This module loading at all means every import above (including the
 // Firebase SDK) resolved successfully — cancel the connection-trouble
@@ -227,10 +228,12 @@ async function showSignedInApp() {
   await runOnboardingIfNeeded();
   await navigate("home");
   mountMascot();
+  mountAssistant();
 }
 
 async function showSignedOut() {
   unmountMascot();
+  unmountAssistant();
   document.getElementById("splash").classList.add("hidden");
   document.getElementById("onboarding").classList.remove("active");
   const authScreen = document.getElementById("auth-screen");
