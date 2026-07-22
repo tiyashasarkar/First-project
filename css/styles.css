@@ -2911,7 +2911,15 @@ html.theme-transitioning .sheet {
 /* ---------------------------------------------------------------------- */
 
 @media (min-width: 700px) {
+  /* All of these are flex items inside flex-direction:column screens. A
+     flex item with "margin: auto" but no explicit width shrinks to fit
+     its content instead of stretching up to max-width first — so without
+     width:100% here, screens quietly rendered narrower than intended
+     (e.g. Home capping at ~490px instead of using its full 760/980px
+     budget). Pairing width:100% with max-width makes them genuinely
+     stretch-then-cap, which is what actually looks laptop-sized. */
   .screen-scroll {
+    width: 100%;
     max-width: 760px;
     margin: 0 auto;
   }
@@ -2928,8 +2936,38 @@ html.theme-transitioning .sheet {
 
   .signature-grid,
   .sticker-grid {
+    width: 100%;
     max-width: 460px;
     margin: 0 auto;
+  }
+
+  /* Mode picker (theme choice) and onboarding are full-bleed, centered
+     flex columns on phones — on laptop widths that stretched their cards
+     and buttons edge to edge with huge dead space, so cap them to a
+     comfortable reading width like every other screen here. */
+  .mode-list,
+  #mode-continue {
+    width: 100%;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #mode-picker h1,
+  #mode-picker .sub {
+    width: 100%;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .ob-slides,
+  .ob-dots,
+  .ob-footer {
+    width: 100%;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .nav-btn,
