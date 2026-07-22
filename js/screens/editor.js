@@ -295,6 +295,12 @@ function buildCalendarHTML(item) {
 
 let ed = null; // editor session state
 let returnScreen = { name: "home", params: {} };
+// Spotify items are draggable/resizable canvas items whose body is a live
+// iframe — while a shield overlay blocks the iframe (so drags don't get
+// swallowed by it), tapping the toolbar's play button for a selected item
+// lifts the shield so its controls become clickable. Per-editor-session
+// only; reset on each openEditor() call.
+let interactiveSpotify = new Set();
 
 function rand(min, max) { return Math.random() * (max - min) + min; }
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
@@ -447,6 +453,7 @@ export async function openEditor({ pageId, journalId, template = "blank", files 
     isCover,
     coverJournalId: coverForJournalId,
   };
+  interactiveSpotify = new Set();
 
   screenEl.innerHTML = buildShell();
   document.getElementById("bottom-nav").style.display = "none";
@@ -518,7 +525,6 @@ function buildShell() {
           <span class="mtp-icon" id="ed-music-icon">▶</span>
           <span class="mtp-label" id="ed-music-label"></span>
         </button>
-        <div class="spotify-card hidden" id="ed-spotify-card"></div>
       </div>
       <aside class="editor-sidebar" id="ed-sidebar">
         <h3 class="curate-heading">Curate</h3>
@@ -698,10 +704,25 @@ function renderStaticItem(item, z, urlCache) {
     body.style.fontSize = calendarFontSize(item);
     body.innerHTML = buildCalendarHTML(item);
     applyCalendarPalette(item, body);
+  } else if (item.type === "spotify") {
+    // Read-only views (the reader, journal covers) have no drag concern,
+    // so the embed is always live and playable — no shield needed.
+    body.appendChild(buildSpotifyIframe(item));
   }
 
   el.appendChild(body);
   return el;
+}
+
+function buildSpotifyIframe(item) {
+  const iframe = document.createElement("iframe");
+  iframe.src = `https://open.spotify.com/embed/${item.kind}/${item.spotifyId}?utm_source=generator`;
+  iframe.style.width = "100%";
+  iframe.style.height = "100%";
+  iframe.style.border = "none";
+  iframe.setAttribute("allow", "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture");
+  iframe.loading = "lazy";
+  return iframe;
 }
 
 function renderCanvas() {
@@ -769,6 +790,12 @@ function createItemEl(item) {
     body.style.fontSize = calendarFontSize(item);
     body.innerHTML = buildCalendarHTML(item);
     applyCalendarPalette(item, body);
+  } else if (item.type === "spotify") {
+    body.appendChild(buildSpotifyIframe(item));
+    const shield = document.createElement("div");
+    shield.className = "c-item-shield";
+    shield.style.pointerEvents = interactiveSpotify.has(item.id) ? "none" : "auto";
+    body.appendChild(shield);
   }
 
   el.appendChild(body);
@@ -944,6 +971,7 @@ function updateItemToolbar() {
     ${item.type === "text" ? `<button id="it-edit" title="Edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3"/></svg></button>` : ""}
     ${item.type === "photo" ? `<button id="it-frame" title="Frame"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 4v16M4 9h5"/></svg></button>` : ""}
     ${item.type === "calendar" ? `<button id="it-calstyle" title="Style"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6L21 9.3l-4.5 4.2 1.2 6.2L12 16.8l-5.7 2.9 1.2-6.2L3 9.3l6.4-.7z"/></svg></button>` : ""}
+    ${item.type === "spotify" ? `<button id="it-play" title="${interactiveSpotify.has(item.id) ? "Lock for dragging" : "Play"}">${interactiveSpotify.has(item.id) ? '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></svg>'}</button>` : ""}
     <button id="it-back" title="Send backward"><svg viewBox="0 0 24 24"><path d="M4 4h10v10H4z"/><path d="M10 10h10v10H10z"/></svg></button>
     <button id="it-fwd" title="Bring forward"><svg viewBox="0 0 24 24"><path d="M10 10h10v10H10z"/><path d="M4 4h10v10H4z" fill="none"/></svg></button>
     <button id="it-dup" title="Duplicate"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></button>
@@ -953,6 +981,15 @@ function updateItemToolbar() {
   if (item.type === "text") document.getElementById("it-edit").addEventListener("click", () => openTextSheet(item));
   if (item.type === "photo") document.getElementById("it-frame").addEventListener("click", () => openFrameSheet(item));
   if (item.type === "calendar") document.getElementById("it-calstyle").addEventListener("click", () => openCalendarStyleSheet(item));
+  if (item.type === "spotify") {
+    document.getElementById("it-play").addEventListener("click", () => {
+      if (interactiveSpotify.has(item.id)) interactiveSpotify.delete(item.id);
+      else interactiveSpotify.add(item.id);
+      renderCanvas();
+      selectItem(item.id);
+      showToast(interactiveSpotify.has(item.id) ? "Tap ▶ inside to play — drag is locked while this is on" : "Locked for dragging — tap ▶ again to play");
+    });
+  }
   document.getElementById("it-back").addEventListener("click", () => reorder(item, -1));
   document.getElementById("it-fwd").addEventListener("click", () => reorder(item, 1));
   document.getElementById("it-dup").addEventListener("click", () => duplicateItem(item));
@@ -983,7 +1020,8 @@ function duplicateItem(item) {
 
 function addItem(partial) {
   const jitter = rand(-26, 26);
-  const item = { id: idgen(), rotation: 0, x: PAGE_W / 2 - 60 + jitter, y: PAGE_H / 2 - 60 + rand(-26, 26), w: 120, h: 120, ...partial };
+  const w = partial.w ?? 120, h = partial.h ?? 120;
+  const item = { id: idgen(), rotation: 0, x: PAGE_W / 2 - w / 2 + jitter, y: PAGE_H / 2 - h / 2 + rand(-26, 26), w, h, ...partial };
   if (ed.messy) item.rotation = rand(-10, 10);
   ed.items.push(item);
   commitHistory();
@@ -1297,6 +1335,7 @@ function renderMusicSection(container) {
       <input type="text" data-f="spotify-input" placeholder="Paste a Spotify link…" style="flex:1;min-width:0;" />
       <button class="btn btn-primary" data-f="spotify-add">Add</button>
     </div>
+    <p style="font-size:11.5px;color:var(--ink-soft);line-height:1.4;margin:6px 0 0;">Drops a Spotify player right onto the page — drag, resize, or rotate it like a sticker, and tap ▶ once selected to play it.</p>
     <div data-f="spotify-hint" style="display:none;"></div>
     ${current ? `<button class="btn btn-block" data-f="remove" style="color:#c94f6a;margin-top:8px;">Remove music</button>` : ""}
   `;
@@ -1344,11 +1383,9 @@ function renderMusicSection(container) {
       return;
     }
     spotifyHint.style.display = "none";
-    stopPageAudio();
-    ed.page.audio = { type: "spotify", kind: parsed.kind, id: parsed.id };
-    updateMusicUI();
-    renderMusicSection(container);
-    showToast("Spotify link added 🎧");
+    input.value = "";
+    const item = addItem({ type: "spotify", kind: parsed.kind, spotifyId: parsed.id, w: 260, h: 152 });
+    showToast("Spotify player added — drag it anywhere on the page 🎧");
   });
   const removeBtn = container.querySelector('[data-f="remove"]');
   if (removeBtn) {
@@ -1364,38 +1401,14 @@ function renderMusicSection(container) {
 
 function updateMusicUI() {
   const pill = document.getElementById("ed-music-toggle");
-  const spotifyCard = document.getElementById("ed-spotify-card");
-  if (!pill || !spotifyCard || !ed) return;
+  if (!pill || !ed) return;
   const audio = ed.page.audio;
 
   if (!audio) {
     pill.classList.add("hidden");
-    spotifyCard.classList.add("hidden");
-    spotifyCard.innerHTML = "";
     return;
   }
 
-  if (audio.type === "spotify") {
-    pill.classList.add("hidden");
-    spotifyCard.classList.remove("hidden");
-    const key = audio.kind + ":" + audio.id;
-    if (spotifyCard.dataset.key !== key) {
-      spotifyCard.dataset.key = key;
-      spotifyCard.innerHTML = `
-        <div class="spotify-card-head"><span>🎧 Spotify</span><button id="ed-spotify-remove" title="Remove">✕</button></div>
-        <iframe src="https://open.spotify.com/embed/${audio.kind}/${audio.id}?utm_source=generator" width="100%" height="152" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-      `;
-      document.getElementById("ed-spotify-remove").addEventListener("click", () => {
-        ed.page.audio = null;
-        updateMusicUI();
-      });
-    }
-    return;
-  }
-
-  spotifyCard.classList.add("hidden");
-  spotifyCard.innerHTML = "";
-  spotifyCard.dataset.key = "";
   pill.classList.remove("hidden");
   const label = audio.type === "vibe" ? (VIBES.find((v) => v.id === audio.vibeId)?.label || "Vibe") : "Your clip";
   const nowPlaying = isCurrentlyPlaying(audio);
