@@ -5,6 +5,7 @@
 // on repeat taps. Purely original hand-built vector artwork/names — no
 // third-party branding, logos, or wordmarks.
 import { showToast } from "./ui.js";
+import { hapticFeedback } from "./db.js";
 
 const STICKERS = [
   {
@@ -175,6 +176,7 @@ function bump(el) {
   el.classList.remove("glam-bump");
   void el.offsetWidth;
   el.classList.add("glam-bump");
+  hapticFeedback(6);
 }
 
 function spawnFloating(emoji, x, y, { count = 1, spread = 60, rise = 90, duration = 1100 } = {}) {
@@ -279,7 +281,9 @@ function flyPlaneThroughClouds() {
   plane.style.top = baseY + "px";
   sky.appendChild(plane);
 
-  const flip = fromRight ? " scaleX(-1)" : "";
+  // The artwork's nose points left by default, so flying rightward (not
+  // fromRight) is the case that needs mirroring — not the other way round.
+  const flip = fromRight ? "" : " scaleX(-1)";
   const startX = fromRight ? w + 60 : -100;
   const endX = fromRight ? -100 : w + 60;
   const p1 = fromRight ? w * 0.72 : w * 0.28;

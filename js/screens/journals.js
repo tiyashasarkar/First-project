@@ -132,6 +132,7 @@ export async function renderJournalDetail(container, journalId) {
         <button class="icon-btn" id="jd-back" style="background:rgba(255,255,255,.85);"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
         <button class="icon-btn" id="jd-menu" style="background:rgba(255,255,255,.85);"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg></button>
       </div>
+      <button class="jd-curate-btn" id="jd-curate" style="z-index:2;">🎨 <span>Curate cover</span></button>
       <div style="position:absolute;left:20px;right:20px;bottom:16px;color:white;z-index:2;">
         <h1 style="color:white;font-size:24px;">${escapeHtml(journal.title)}</h1>
         <div style="font-size:12.5px;opacity:.9;margin-top:3px;">${pages.length} page${pages.length === 1 ? "" : "s"}${journal.description ? " · " + escapeHtml(journal.description) : ""}</div>
@@ -153,6 +154,7 @@ export async function renderJournalDetail(container, journalId) {
   await paintCoverArt(document.getElementById("jd-header-art"), journal, 190);
 
   container.querySelector("#jd-back").addEventListener("click", () => window.blossomNavigate("journals"));
+  container.querySelector("#jd-curate").addEventListener("click", () => openEditor({ coverForJournalId: journalId }));
   container.querySelector("#jd-add-page").addEventListener("click", () => openCreateFlow({ journalId }));
   if (pages.length) {
     container.querySelector("#jd-read").addEventListener("click", () => openReader({ journalId }));
@@ -188,14 +190,10 @@ function openJournalMenu(journal, container, journalId) {
   openSheet({
     title: journal.title,
     html: `
-      <div class="settings-list">
+      <div class="settings-group">
         <button class="settings-row" id="jm-rename" style="width:100%;background:none;border:none;text-align:left;">
           <div class="si"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3"/></svg></div>
           <div class="label">Rename & edit</div>
-        </button>
-        <button class="settings-row" id="jm-cover" style="width:100%;background:none;border:none;text-align:left;">
-          <div class="si">🎨</div>
-          <div class="label">Design cover</div>
         </button>
         <button class="settings-row" id="jm-fav" style="width:100%;background:none;border:none;text-align:left;">
           <div class="si">${journal.favorite ? "💗" : "🤍"}</div>
@@ -215,10 +213,6 @@ function openJournalMenu(journal, container, journalId) {
   document.getElementById("jm-rename").addEventListener("click", () => {
     closeSheet();
     openRenameSheet(journal, container, journalId);
-  });
-  document.getElementById("jm-cover").addEventListener("click", () => {
-    closeSheet();
-    openEditor({ coverForJournalId: journalId });
   });
   document.getElementById("jm-fav").addEventListener("click", async () => {
     journal.favorite = !journal.favorite;
