@@ -227,16 +227,25 @@ function hexToRgb(hex) {
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
 
-function parseSpotifyLink(url) {
-  try {
-    const u = new URL(url);
-    if (!u.hostname.includes("spotify.com")) return null;
-    const m = u.pathname.match(/\/(track|playlist|album|episode|show)\/([a-zA-Z0-9]+)/);
-    if (!m) return null;
-    return { kind: m[1], id: m[2] };
-  } catch {
-    return null;
-  }
+// Deliberately forgiving: real-world "copied from Spotify" text varies a
+// lot — a bare link with no protocol, a link buried in a shared sentence,
+// an intl-prefixed URL, or the desktop app's spotify:track:ID URI — and a
+// strict new URL()-only parser rejected most of these, which is almost
+// certainly why users hit "that doesn't look like a Spotify link" on
+// input that very much was one.
+const SPOTIFY_URI_RE = /spotify:(track|playlist|album|episode|show):([a-zA-Z0-9]+)/i;
+const SPOTIFY_URL_RE = /open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|playlist|album|episode|show)\/([a-zA-Z0-9]+)/i;
+const SPOTIFY_SHORTLINK_RE = /(spotify\.link|spotify\.app\.link|spoti\.fi)\//i;
+
+function parseSpotifyLink(raw) {
+  const text = (raw || "").trim();
+  if (!text) return null;
+  const uriMatch = text.match(SPOTIFY_URI_RE);
+  if (uriMatch) return { kind: uriMatch[1], id: uriMatch[2] };
+  const urlMatch = text.match(SPOTIFY_URL_RE);
+  if (urlMatch) return { kind: urlMatch[1], id: urlMatch[2] };
+  if (SPOTIFY_SHORTLINK_RE.test(text)) return { shortLink: true };
+  return null;
 }
 
 const PROMPTS = {
@@ -1307,9 +1316,13 @@ function renderMusicSection(container) {
   container.querySelector('[data-f="upload"]').addEventListener("click", () => pickAndUploadAudio(container));
   container.querySelector('[data-f="spotify-add"]').addEventListener("click", () => {
     const input = container.querySelector('[data-f="spotify-input"]');
-    const parsed = parseSpotifyLink(input.value.trim());
+    const parsed = parseSpotifyLink(input.value);
     if (!parsed) {
       showToast("That doesn't look like a Spotify link — copy it from the Share menu.");
+      return;
+    }
+    if (parsed.shortLink) {
+      showToast("That's a shortened link — open it once in a browser, then paste the full open.spotify.com link from the address bar.");
       return;
     }
     stopPageAudio();

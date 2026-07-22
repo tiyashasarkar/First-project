@@ -17,7 +17,7 @@
   --peach: #fce4d8;
   --gold: #f0bd82;
   --ink: #4a3b42;
-  --ink-soft: #8a7480;
+  --ink-soft: #715c68;
   --line: #f0d9e0;
 
   --grad-hero: linear-gradient(135deg, #fbe4ec 0%, #f6c9d8 55%, #eab6ce 100%);
@@ -102,7 +102,7 @@
   --peach: #ff96c5;
   --gold: #ff5aa4;
   --ink: #5c0033;
-  --ink-soft: #b34d82;
+  --ink-soft: #8f3a68;
   --line: #ff96c5;
 
   --grad-hero: linear-gradient(135deg, #ffc0dc 0%, #ff5aa4 55%, #f70071 100%);
@@ -705,7 +705,7 @@ a {
 }
 
 .sheet-head h3 {
-  font-size: 19px;
+  font-size: 21px;
 }
 
 .sheet-body {
@@ -724,9 +724,9 @@ a {
 
 .field label {
   display: block;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: var(--mauve);
+  color: var(--mauve-dark);
   margin-bottom: 6px;
   letter-spacing: 0.01em;
 }
@@ -1082,7 +1082,7 @@ a {
 }
 
 .mode-card .mc-tag {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink-soft);
   margin-top: 2px;
 }
@@ -2309,12 +2309,13 @@ button.settings-row:active {
 .settings-row .label {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 16px;
+  color: var(--ink);
   flex: 1;
 }
 
 .settings-row .sub {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-soft);
   margin-top: 2px;
   line-height: 1.4;
@@ -2518,9 +2519,9 @@ button.settings-row:active {
   flex: 1;
   padding: 9px 6px;
   border-radius: var(--radius-pill);
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: var(--mauve);
+  color: var(--ink-soft);
 }
 
 .segmented button.active {
@@ -3596,8 +3597,7 @@ html.theme-transitioning .sheet {
 #pup-widget {
   position: fixed;
   left: 14px;
-  top: 46%;
-  transform: translateY(-50%);
+  bottom: calc(92px + var(--safe-bottom));
   z-index: 46;
 }
 

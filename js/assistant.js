@@ -54,6 +54,35 @@ const HELP_RE = /\b(help|what can you do|how does this work)\b/i;
 const SURPRISE_RE = /\b(surprise me|redesign|restyle|shuffle|randomize|make it better|glow ?up)\b/i;
 const TEXT_RE = /(?:saying|that says|write)\s+["“]?(.+?)["”]?[.!]?\s*$/i;
 
+// Small FAQ knowledge base so Pup Cup can answer real questions about the
+// app, not just take redesign commands. Rule-based like everything else
+// here — matched by pattern, not understood — but covers the questions
+// people actually ask.
+const FAQ = [
+  { patterns: [/who are you/, /what.?s your name/, /your name/], answer: "I'm Pup Cup! 🐶 I'm Blossom's built-in helper — I can redesign your pages and answer questions about the app." },
+  { patterns: [/are you (a real )?ai\b/, /are you chatgpt/, /are you claude/, /real ai/], answer: "Honest answer: I'm not a connected AI model like ChatGPT — I'm a built-in helper that understands a wide range of phrases and app questions. That keeps Blossom completely free with nothing to set up! 🐾" },
+  { patterns: [/what is (this app|blossom)/, /what does this app do/], answer: "Blossom is your scrapbook photo journal 🌸 — create journals, fill pages with photos, stickers, text and music, then read them back like a real flip-book, notepad, scrapbook, or diary." },
+  { patterns: [/how do i (make|create|start) a (new )?journal/, /create a journal/], answer: "Tap the ➕ in the Journals tab, or the pink ➕ on the bottom nav, to start a new journal!" },
+  { patterns: [/how do i add a photo/, /add (a )?picture/, /upload (a )?photo/], answer: "Open a page and tap the 📷 Photo button in the toolbar — you can drag, resize, and rotate it once it's on the page." },
+  { patterns: [/change the theme/, /glam mode/, /midnight mode/, /change (my )?vibe/], answer: "Head to Profile → Theme to switch between Blossom, Glam Mode, and Midnight Mode any time!" },
+  { patterns: [/add music/, /add spotify/, /add a song/, /spotify link/], answer: "Open a page, tap the 🎵 music icon (or the title bar on phones), and you can pick a vibe, upload a clip, or paste a Spotify link." },
+  { patterns: [/is my data private/, /who can see my/, /is this private/], answer: "Totally private — everything lives in your own account and is never shared or public. 🔒" },
+  { patterns: [/how do i back ?up/, /backup my (data|memories)/], answer: "Go to Profile → Backup my memories to download everything as a file you keep safe." },
+  { patterns: [/how do i read/, /flip ?book/, /reading mode/, /notepad style/], answer: "Open any journal and tap 📖 Read — pick between Flip Book, Notepad, Scrapbook, or Diary from the icon in the top right!" },
+  { patterns: [/design a cover/, /journal cover/, /add a cover/], answer: "Open a journal and tap the \"🎨 Curate cover\" button on the banner — it opens the same page editor so you can design a cover." },
+];
+
+const FOLLOWUPS = [
+  "Want me to redesign your page while we're at it? 🎨",
+  "Anything else you're curious about?",
+  "Should I go ahead and jazz up your current page?",
+  "Anything else I can help with?",
+];
+
+function pickFollowUp() {
+  return FOLLOWUPS[Math.floor(Math.random() * FOLLOWUPS.length)];
+}
+
 function findMatch(text, table) {
   const hits = [];
   for (const [id, words] of table) {
@@ -62,12 +91,19 @@ function findMatch(text, table) {
   return hits;
 }
 
+function matchFaq(text) {
+  for (const item of FAQ) {
+    if (item.patterns.some((re) => re.test(text))) return item;
+  }
+  return null;
+}
+
 function interpret(rawText) {
   const text = rawText.toLowerCase().trim();
   if (!text) return { actions: [], reply: "Ruff? Tell me what you'd like your page to look like! 🐾" };
 
   if (GREETING_RE.test(text) && text.length < 20) {
-    return { actions: [], reply: "Ruff ruff! 🐶 I'm your redesign pup — tell me a mood, color, or thing to add and I'll restyle your page!" };
+    return { actions: [], reply: "Ruff ruff! 🐶 I'm Pup Cup. What are you up to today — need a redesign, or have a question about the app?" };
   }
   if (THANKS_RE.test(text)) {
     return { actions: [], reply: "Ruff! Anytime — happy to help make your page cute. 🐾" };
@@ -75,8 +111,13 @@ function interpret(rawText) {
   if (HELP_RE.test(text)) {
     return {
       actions: [],
-      reply: "I can restyle whatever page you're editing! Try things like:\n• \"make it pink and dotted\"\n• \"add hearts and a bow\"\n• \"vintage vibes\"\n• \"surprise me\"\n• \"write happy birthday\"",
+      reply: "I can redesign your pages or answer questions about Blossom! Try:\n• \"make it pink and dotted\"\n• \"add hearts and a bow\"\n• \"surprise me\"\n• \"how do I add music\"\n• \"how do I create a journal\"",
     };
+  }
+
+  const faqHit = matchFaq(text);
+  if (faqHit) {
+    return { actions: [], reply: faqHit.answer + "\n\n" + pickFollowUp() };
   }
 
   const actions = [];
@@ -110,11 +151,12 @@ function interpret(rawText) {
   if (!actions.length) {
     return {
       actions: [],
-      reply: "Hmm, I didn't quite catch a style in that — try a color (\"make it lilac\"), a pattern (\"lined paper\"), something to add (\"add a crown\"), or just say \"surprise me\"! 🐾",
+      reply: "Hmm, I didn't quite catch that — try a color (\"make it lilac\"), a pattern (\"lined paper\"), something to add (\"add a crown\"), \"surprise me\", or ask me a question about the app! 🐾",
     };
   }
 
-  return { actions, reply: "Ruff ruff! I " + said.join(" and ") + ". Take a peek! 🐶" };
+  const reply = "Ruff ruff! I " + said.join(" and ") + ". Take a peek! 🐶" + (Math.random() < 0.35 ? "\n\n" + pickFollowUp() : "");
+  return { actions, reply };
 }
 
 const PUPPY_SVG = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -144,7 +186,7 @@ export function mountAssistant() {
   root.id = "pup-widget";
   root.innerHTML = `
     <div class="pup-bubble" id="pup-bubble">Ruff ruff! 🐾</div>
-    <button class="pup-btn" id="pup-btn" aria-label="Redesign assistant">${PUPPY_SVG}</button>
+    <button class="pup-btn" id="pup-btn" aria-label="Pup Cup assistant">${PUPPY_SVG}</button>
   `;
   document.body.appendChild(root);
   document.getElementById("pup-btn").addEventListener("click", openAssistantChat);
@@ -185,21 +227,21 @@ function openAssistantChat() {
   document.getElementById("pup-bubble")?.classList.remove("show");
 
   if (!history.length) {
-    history.push({ from: "pup", text: "Ruff! I'm your redesign pup 🐶 Tell me how you want this page to look — colors, patterns, stickers, whatever you're feeling!" });
+    history.push({ from: "pup", text: "Ruff! I'm Pup Cup 🐶 I can redesign this page or answer questions about Blossom. What would you like to do?" });
   }
 
   openSheet({
-    title: "🐾 Redesign Pup",
+    title: "🐾 Pup Cup",
     html: `
       <div class="pup-chat" id="pup-chat">${history.map(bubbleHtml).join("")}</div>
       <div class="pup-suggestions" id="pup-suggestions">
         <button data-q="surprise me">🎲 Surprise me</button>
         <button data-q="make it pink and dotted">🌸 Make it pink</button>
         <button data-q="add hearts and a bow">💗 Add hearts</button>
-        <button data-q="vintage vibes">🕰️ Vintage vibes</button>
+        <button data-q="how do I add music?">❓ How do I add music?</button>
       </div>
       <div class="pup-input-row">
-        <input type="text" id="pup-input" placeholder="Tell me what you want..." maxlength="140" />
+        <input type="text" id="pup-input" placeholder="Ask me anything or tell me what to change..." maxlength="140" />
         <button class="pup-send" id="pup-send" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 8 6 8z"/></svg></button>
       </div>
     `,
