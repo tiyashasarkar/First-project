@@ -3,7 +3,7 @@
    Design system: tokens, layout, components
    ========================================================================== */
 
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Quicksand:wght@400;500;600;700&family=Caveat:wght@500;600;700&family=Parisienne&family=Indie+Flower&family=Homemade+Apple&family=Shadows+Into+Light&family=Kalam&family=Patrick+Hand&family=Gochi+Hand&family=Reenie+Beanie&family=Nanum+Pen+Script&family=Just+Another+Hand&family=Coming+Soon&family=Architects+Daughter&family=Amatic+SC&family=Permanent+Marker&family=Rock+Salt&family=Waiting+for+the+Sunrise&family=Crafty+Girls&family=Caveat+Brush&family=Great+Vibes&family=Pacifico&family=Sacramento&family=Alex+Brush&family=Allura&family=Tangerine&family=Yellowtail&family=Satisfy&family=Cookie&family=Marck+Script&family=Mrs+Saint+Delafield&family=Meddon&family=Playball&family=Italianno&family=Petit+Formal+Script&family=Playfair+Display&family=Cormorant+Garamond&family=Libre+Baskerville&family=EB+Garamond&family=Cinzel&family=Marcellus&family=Prata&family=Bodoni+Moda&family=Cormorant&family=Fredoka&family=Baloo+2&family=Chewy&family=Bungee&family=Lilita+One&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Quicksand:wght@400;500;600;700&family=Caveat:wght@500;600;700&family=Parisienne&family=Indie+Flower&family=Homemade+Apple&family=Shadows+Into+Light&family=Kalam&family=Patrick+Hand&family=Gochi+Hand&family=Reenie+Beanie&family=Nanum+Pen+Script&family=Just+Another+Hand&family=Coming+Soon&family=Architects+Daughter&family=Amatic+SC&family=Permanent+Marker&family=Rock+Salt&family=Waiting+for+the+Sunrise&family=Crafty+Girls&family=Caveat+Brush&family=Great+Vibes&family=Pacifico&family=Sacramento&family=Alex+Brush&family=Allura&family=Tangerine&family=Yellowtail&family=Satisfy&family=Cookie&family=Marck+Script&family=Mrs+Saint+Delafield&family=Meddon&family=Playball&family=Italianno&family=Petit+Formal+Script&family=Playfair+Display&family=Cormorant+Garamond&family=Libre+Baskerville&family=EB+Garamond&family=Cinzel&family=Marcellus&family=Prata&family=Bodoni+Moda&family=Cormorant&family=Fredoka:wght@400;500;600;700&family=Baloo+2:wght@400;500;600;700&family=Chewy&family=Bungee&family=Lilita+One&display=swap");
 
 :root {
   /* palette */
@@ -33,7 +33,7 @@
   --radius-sm: 12px;
   --radius-pill: 999px;
 
-  --font-display: "Fraunces", Georgia, serif;
+  --font-display: "Fredoka", "Baloo 2", Georgia, serif;
   --font-body: "Quicksand", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-hand: "Caveat", "Bradley Hand", cursive;
   --font-script: "Parisienne", "Snell Roundhand", cursive;
@@ -152,6 +152,7 @@ h3 {
   font-weight: 600;
   margin: 0;
   color: var(--mauve-dark);
+  letter-spacing: -0.01em;
 }
 
 p {
@@ -198,11 +199,21 @@ a {
   display: none;
   flex-direction: column;
   overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+  background: var(--cream);
 }
 
 .screen.active {
   display: flex;
+  z-index: 2;
 }
+
+.screen.screen-enter-from-right { transform: translateX(100%); }
+.screen.screen-enter-from-left { transform: translateX(-100%); }
+.screen.screen-exit-to-left { transform: translateX(-25%); z-index: 1; }
+.screen.screen-exit-to-right { transform: translateX(100%); z-index: 1; }
+.screen.screen-fade-enter { opacity: 0; }
+.screen.screen-fade-exit { opacity: 0; z-index: 1; }
 
 .screen-scroll {
   flex: 1;
@@ -246,7 +257,7 @@ a {
 }
 
 .topbar h1 {
-  font-size: 26px;
+  font-size: 30px;
   margin-top: 2px;
 }
 
@@ -269,7 +280,7 @@ a {
 }
 
 .section-head h2 {
-  font-size: 19px;
+  font-size: 21px;
 }
 
 .section-head .link {
@@ -493,7 +504,7 @@ a {
 
 .memory-card .meta .title {
   font-family: var(--font-display);
-  font-size: 14.5px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--mauve-dark);
   white-space: nowrap;
@@ -534,6 +545,24 @@ a {
   align-items: flex-start;
   justify-content: flex-end;
   padding: 8px;
+  position: relative;
+}
+
+.cover-thumb-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.cover-thumb-wrap .canvas-page {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center center;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 .journal-cover .art .fav {
@@ -545,6 +574,8 @@ a {
   align-items: center;
   justify-content: center;
   font-size: 13px;
+  position: relative;
+  z-index: 1;
 }
 
 .journal-cover .info {
@@ -555,7 +586,7 @@ a {
 .journal-cover .info .title {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 16.5px;
   color: var(--mauve-dark);
   white-space: nowrap;
   overflow: hidden;
@@ -2762,17 +2793,140 @@ html.theme-transitioning .sheet {
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1400px;
   background: repeating-linear-gradient(45deg, var(--editor-stripe-a), var(--editor-stripe-a) 12px, var(--editor-stripe-b) 12px, var(--editor-stripe-b) 24px);
   position: relative;
   overflow: hidden;
   touch-action: none;
 }
 
+.reader-book {
+  position: relative;
+  width: 380px;
+  height: 507px;
+  perspective: 1400px;
+}
+
 #rd-page {
+  position: absolute;
+  inset: 0;
   transform-style: preserve-3d;
   backface-visibility: hidden;
   box-shadow: 0 18px 40px -12px rgba(111, 74, 94, 0.4);
+  z-index: 3;
+  background-size: cover;
+  background-position: center;
+}
+
+.reader-fallback-cover {
+  display: flex;
+  align-items: flex-end;
+  padding: 28px 24px;
+  box-sizing: border-box;
+}
+
+.reader-cover-title {
+  font-family: var(--font-script);
+  font-size: 34px;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  line-height: 1.2;
+}
+
+/* Page-edge stack: simulates paper thickness on the fore-edge, opposite
+   the spine, for the three side-hinged styles. */
+.reader-pagestack {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  right: -5px;
+  width: 9px;
+  background: repeating-linear-gradient(90deg, #ffffff 0 1.5px, #f0dfe6 1.5px 3px);
+  box-shadow: 1px 0 4px rgba(74, 59, 66, 0.2);
+  border-radius: 0 5px 5px 0;
+  z-index: 1;
+}
+
+/* Binding — stays put while #rd-page rotates in front of/away from it,
+   just like a real spine or coil would. */
+.reader-binding {
+  position: absolute;
+  z-index: 2;
+}
+
+.reader-binding.style-book {
+  left: -7px;
+  top: 3%;
+  bottom: 3%;
+  width: 16px;
+  border-radius: 7px 0 0 7px;
+  background:
+    repeating-linear-gradient(55deg, rgba(255, 236, 214, 0.5) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(-55deg, rgba(255, 236, 214, 0.5) 0 2px, transparent 2px 9px),
+    linear-gradient(90deg, #8a5a42, #6b4230);
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.25);
+}
+
+.reader-binding.style-diary {
+  left: -7px;
+  top: 3%;
+  bottom: 3%;
+  width: 16px;
+  border-radius: 7px 0 0 7px;
+  background:
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.12) 0 3px, transparent 3px 14px),
+    linear-gradient(90deg, #4a2f28, #2e1c17);
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.3);
+}
+
+.reader-binding.style-scrapbook {
+  left: -14px;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+}
+
+.reader-binding.style-scrapbook .ring {
+  position: absolute;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 4px solid #b0a48c;
+  box-shadow: inset 0 0 0 2px #fff8f0, 1px 1px 3px rgba(0, 0, 0, 0.3);
+  transform: translateY(-50%);
+}
+
+.reader-binding.style-notepad {
+  left: 4%;
+  right: 4%;
+  top: -12px;
+  height: 22px;
+  background-image: radial-gradient(circle, #b3b3b3 3.5px, transparent 4px);
+  background-size: 24px 22px;
+  background-repeat: repeat-x;
+  background-position: center;
+}
+
+.reader-binding.style-notepad::after {
+  content: "";
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  bottom: -6px;
+  border-top: 2px dashed rgba(74, 59, 66, 0.25);
+}
+
+.reader-ribbon {
+  display: none;
+  position: absolute;
+  top: -12px;
+  right: 54px;
+  width: 16px;
+  height: 46px;
+  background: linear-gradient(180deg, #ff6fc0, #d6398f);
+  clip-path: polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+  z-index: 4;
 }
 
 .reader-navzone {
@@ -2847,4 +3001,115 @@ html.theme-transitioning .sheet {
 
 .rso-icon {
   font-size: 30px;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Home screen polish                                                     */
+/* ---------------------------------------------------------------------- */
+
+.home-greeting {
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-greeting-emoji {
+  display: inline-block;
+  animation: greetingWobble 2.4s ease-in-out infinite;
+  transform-origin: 70% 70%;
+}
+
+@keyframes greetingWobble {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  10% { transform: rotate(-8deg) scale(1.08); }
+  20% { transform: rotate(6deg) scale(1.05); }
+  30% { transform: rotate(-4deg) scale(1.02); }
+  40% { transform: rotate(0deg) scale(1); }
+}
+
+.home-cta {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  text-align: left;
+  background: var(--grad-hero);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s;
+}
+
+.home-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 85% -10%, rgba(255, 255, 255, 0.5), transparent 55%);
+  pointer-events: none;
+}
+
+.home-cta:active {
+  transform: scale(0.97);
+}
+
+.home-cta-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px -4px rgba(111, 74, 94, 0.3);
+  animation: ctaPulse 2.6s ease-in-out infinite;
+}
+
+@keyframes ctaPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+.home-cta-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.home-cta-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--mauve-dark);
+  font-size: 18px;
+}
+
+.home-cta-sub {
+  font-size: 13px;
+  color: var(--mauve);
+  margin-top: 3px;
+}
+
+.home-cta-arrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.home-cta-arrow svg {
+  width: 18px;
+  height: 18px;
+  stroke: var(--mauve-dark);
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }

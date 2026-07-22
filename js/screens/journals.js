@@ -1,6 +1,6 @@
 import * as db from "../db.js";
 import { escapeHtml, formatDate, showToast, openSheet, closeSheet, confirmAction } from "../ui.js";
-import { openEditor } from "./editor.js";
+import { openEditor, renderStaticPage } from "./editor.js";
 import { openCreateFlow } from "./create.js";
 import { openReader } from "./reader.js";
 
@@ -10,6 +10,29 @@ async function coverStyle(journal) {
     if (url) return `background-image:url('${url}')`;
   }
   return `background:${journal.coverColor || "linear-gradient(145deg,#f6c9d8,#d98fac)"}`;
+}
+
+// Paints either a designed cover (freeform items, rendered live and scaled
+// down via the same renderer the editor/reader use) or the legacy flat
+// photo/gradient cover into a container that already has position:relative.
+async function paintCoverArt(artEl, journal, targetHeight) {
+  if (journal.cover?.items?.length) {
+    const urlCache = new Map();
+    for (const item of journal.cover.items) {
+      if ((item.type === "photo" || item.type === "sticker") && item.mediaId) {
+        await db.getMediaURL(item.mediaId, urlCache);
+      }
+    }
+    const wrap = document.createElement("div");
+    wrap.className = "cover-thumb-wrap";
+    const inner = document.createElement("div");
+    wrap.appendChild(inner);
+    artEl.appendChild(wrap);
+    renderStaticPage(inner, journal.cover, urlCache);
+    inner.style.transform = `translate(-50%, -50%) scale(${targetHeight / 507})`;
+  } else {
+    artEl.style.cssText += (await coverStyle(journal)) + ";background-size:cover;background-position:center;";
+  }
 }
 
 export async function renderJournals(container) {
@@ -44,9 +67,8 @@ export async function renderJournals(container) {
 async function journalCoverEl(journal) {
   const el = document.createElement("div");
   el.className = "journal-cover fade-in";
-  const style = await coverStyle(journal);
   el.innerHTML = `
-    <div class="art" style="${style}">
+    <div class="art">
       <div class="fav">${journal.favorite ? "💗" : "🤍"}</div>
     </div>
     <div class="info">
@@ -54,6 +76,7 @@ async function journalCoverEl(journal) {
       <div class="sub">${journal.pageCount || 0} page${journal.pageCount === 1 ? "" : "s"} · ${formatDate(journal.updatedAt)}</div>
     </div>
   `;
+  await paintCoverArt(el.querySelector(".art"), journal, 150);
   el.addEventListener("click", () => window.blossomNavigate("journal-detail", { journalId: journal.id }));
   el.querySelector(".fav").addEventListener("click", async (e) => {
     e.stopPropagation();
@@ -101,16 +124,15 @@ export async function renderJournalDetail(container, journalId) {
     return;
   }
   const pages = (await db.getByIndex("pages", "journalId", journalId)).sort((a, b) => b.updatedAt - a.updatedAt);
-  const style = await coverStyle(journal);
 
   container.innerHTML = `
-    <div style="height:190px;position:relative;flex-shrink:0;${style};background-size:cover;background-position:center;">
-      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.35));"></div>
-      <div style="position:relative;padding:calc(var(--safe-top) + 12px) 16px 0;display:flex;justify-content:space-between;">
+    <div style="height:190px;position:relative;flex-shrink:0;overflow:hidden;" id="jd-header-art">
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.35));z-index:1;"></div>
+      <div style="position:relative;z-index:2;padding:calc(var(--safe-top) + 12px) 16px 0;display:flex;justify-content:space-between;">
         <button class="icon-btn" id="jd-back" style="background:rgba(255,255,255,.85);"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
         <button class="icon-btn" id="jd-menu" style="background:rgba(255,255,255,.85);"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg></button>
       </div>
-      <div style="position:absolute;left:20px;right:20px;bottom:16px;color:white;">
+      <div style="position:absolute;left:20px;right:20px;bottom:16px;color:white;z-index:2;">
         <h1 style="color:white;font-size:24px;">${escapeHtml(journal.title)}</h1>
         <div style="font-size:12.5px;opacity:.9;margin-top:3px;">${pages.length} page${pages.length === 1 ? "" : "s"}${journal.description ? " · " + escapeHtml(journal.description) : ""}</div>
       </div>
@@ -127,6 +149,8 @@ export async function renderJournalDetail(container, journalId) {
       }
     </div>
   `;
+
+  await paintCoverArt(document.getElementById("jd-header-art"), journal, 190);
 
   container.querySelector("#jd-back").addEventListener("click", () => window.blossomNavigate("journals"));
   container.querySelector("#jd-add-page").addEventListener("click", () => openCreateFlow({ journalId }));
@@ -169,6 +193,10 @@ function openJournalMenu(journal, container, journalId) {
           <div class="si"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3"/></svg></div>
           <div class="label">Rename & edit</div>
         </button>
+        <button class="settings-row" id="jm-cover" style="width:100%;background:none;border:none;text-align:left;">
+          <div class="si">🎨</div>
+          <div class="label">Design cover</div>
+        </button>
         <button class="settings-row" id="jm-fav" style="width:100%;background:none;border:none;text-align:left;">
           <div class="si">${journal.favorite ? "💗" : "🤍"}</div>
           <div class="label">${journal.favorite ? "Remove from favorites" : "Add to favorites"}</div>
@@ -187,6 +215,10 @@ function openJournalMenu(journal, container, journalId) {
   document.getElementById("jm-rename").addEventListener("click", () => {
     closeSheet();
     openRenameSheet(journal, container, journalId);
+  });
+  document.getElementById("jm-cover").addEventListener("click", () => {
+    closeSheet();
+    openEditor({ coverForJournalId: journalId });
   });
   document.getElementById("jm-fav").addEventListener("click", async () => {
     journal.favorite = !journal.favorite;

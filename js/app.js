@@ -34,14 +34,57 @@ const screens = {
   editor: { el: "screen-editor", nav: null },
 };
 
+function prefersReducedMotion() {
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+// journal-detail is the one real "drill down" in this app's flat nav, so
+// it gets a directional slide; everything else (tab switches) gets a
+// gentle cross-fade instead of an arbitrary sideways slide.
+function transitionKind(fromName, toName) {
+  if (toName === "journal-detail") return "forward";
+  if (fromName === "journal-detail" && toName !== "journal-detail") return "back";
+  return "fade";
+}
+
+function animateScreenTransition(fromEl, toEl, kind) {
+  if (kind === "forward" || kind === "back") {
+    const inClass = kind === "forward" ? "screen-enter-from-right" : "screen-enter-from-left";
+    const outClass = kind === "forward" ? "screen-exit-to-left" : "screen-exit-to-right";
+    toEl.classList.add("active", inClass);
+    void toEl.offsetWidth;
+    fromEl.classList.add(outClass);
+    toEl.classList.remove(inClass);
+    const cleanup = () => { fromEl.classList.remove("active", outClass); fromEl.removeEventListener("transitionend", cleanup); };
+    fromEl.addEventListener("transitionend", cleanup);
+    setTimeout(cleanup, 400);
+  } else {
+    toEl.classList.add("active", "screen-fade-enter");
+    void toEl.offsetWidth;
+    fromEl.classList.add("screen-fade-exit");
+    toEl.classList.remove("screen-fade-enter");
+    const cleanup = () => { fromEl.classList.remove("active", "screen-fade-exit"); fromEl.removeEventListener("transitionend", cleanup); };
+    fromEl.addEventListener("transitionend", cleanup);
+    setTimeout(cleanup, 350);
+  }
+}
+
 export async function navigate(name, params = {}) {
   if (state.currentScreen === "editor" && name !== "editor") {
     closeEditor();
   }
+  // Editor and reader bypass this router while open (their own full-screen
+  // takeover), so make sure they're always cleanly hidden regardless of
+  // which transition (if any) runs below.
+  document.getElementById("screen-editor").classList.remove("active");
+  document.getElementById("screen-reader").classList.remove("active");
+
+  const prevName = state.currentScreen;
+  const prevScreen = screens[prevName];
+  const prevEl = prevScreen ? document.getElementById(prevScreen.el) : null;
   state.currentScreen = name;
-  Object.values(screens).forEach((s) => document.getElementById(s.el).classList.remove("active"));
   const target = screens[name];
-  document.getElementById(target.el).classList.add("active");
+  const targetEl = document.getElementById(target.el);
 
   const nav = document.getElementById("bottom-nav");
   nav.style.display = name === "editor" ? "none" : "flex";
@@ -55,6 +98,13 @@ export async function navigate(name, params = {}) {
     await renderJournalDetail(document.getElementById("journal-detail-scroll"), params.journalId);
   } else if (name === "memories") await renderMemories(document.getElementById("memories-scroll"));
   else if (name === "profile") await renderProfile(document.getElementById("profile-scroll"));
+
+  if (prevEl && prevEl !== targetEl && !prefersReducedMotion()) {
+    animateScreenTransition(prevEl, targetEl, transitionKind(prevName, name));
+  } else {
+    Object.values(screens).forEach((s) => document.getElementById(s.el).classList.remove("active"));
+    targetEl.classList.add("active");
+  }
 }
 window.blossomNavigate = navigate;
 window.blossomSignOut = () => signOut(auth);
