@@ -53,23 +53,51 @@ const THANKS_RE = /\b(thanks|thank you|thx|ty)\b/i;
 const HELP_RE = /\b(help|what can you do|how does this work)\b/i;
 const SURPRISE_RE = /\b(surprise me|redesign|restyle|shuffle|randomize|make it better|glow ?up)\b/i;
 const TEXT_RE = /(?:saying|that says|write)\s+["“]?(.+?)["”]?[.!]?\s*$/i;
+const QUESTION_RE = /\?\s*$|^\s*(how|what|why|can|is|does|do|where|when|who|are)\b/i;
 
-// Small FAQ knowledge base so Pup Cup can answer real questions about the
-// app, not just take redesign commands. Rule-based like everything else
-// here — matched by pattern, not understood — but covers the questions
-// people actually ask.
+// A broad FAQ knowledge base so Pup Cup can answer real questions about
+// the app, not just take redesign commands. Matched by keyword (plain
+// substrings, like the redesign synonym tables above) rather than exact
+// regex sentences, since real questions are phrased a hundred different
+// ways — "how do I add a photo" / "add photo" / "add a picture" should
+// all land the same answer.
 const FAQ = [
-  { patterns: [/who are you/, /what.?s your name/, /your name/], answer: "I'm Pup Cup! 🐶 I'm Blossom's built-in helper — I can redesign your pages and answer questions about the app." },
-  { patterns: [/are you (a real )?ai\b/, /are you chatgpt/, /are you claude/, /real ai/], answer: "Honest answer: I'm not a connected AI model like ChatGPT — I'm a built-in helper that understands a wide range of phrases and app questions. That keeps Blossom completely free with nothing to set up! 🐾" },
-  { patterns: [/what is (this app|blossom)/, /what does this app do/], answer: "Blossom is your scrapbook photo journal 🌸 — create journals, fill pages with photos, stickers, text and music, then read them back like a real flip-book, notepad, scrapbook, or diary." },
-  { patterns: [/how do i (make|create|start) a (new )?journal/, /create a journal/], answer: "Tap the ➕ in the Journals tab, or the pink ➕ on the bottom nav, to start a new journal!" },
-  { patterns: [/how do i add a photo/, /add (a )?picture/, /upload (a )?photo/], answer: "Open a page and tap the 📷 Photo button in the toolbar — you can drag, resize, and rotate it once it's on the page." },
-  { patterns: [/change the theme/, /glam mode/, /midnight mode/, /change (my )?vibe/], answer: "Head to Profile → Theme to switch between Blossom, Glam Mode, and Midnight Mode any time!" },
-  { patterns: [/add music/, /add spotify/, /add a song/, /spotify link/], answer: "Open a page, tap the 🎵 music icon (or the title bar on phones), and you can pick a vibe, upload a clip, or paste a Spotify link." },
-  { patterns: [/is my data private/, /who can see my/, /is this private/], answer: "Totally private — everything lives in your own account and is never shared or public. 🔒" },
-  { patterns: [/how do i back ?up/, /backup my (data|memories)/], answer: "Go to Profile → Backup my memories to download everything as a file you keep safe." },
-  { patterns: [/how do i read/, /flip ?book/, /reading mode/, /notepad style/], answer: "Open any journal and tap 📖 Read — pick between Flip Book, Notepad, Scrapbook, or Diary from the icon in the top right!" },
-  { patterns: [/design a cover/, /journal cover/, /add a cover/], answer: "Open a journal and tap the \"🎨 Curate cover\" button on the banner — it opens the same page editor so you can design a cover." },
+  { keywords: ["who are you", "what's your name", "whats your name", "your name"], answer: "I'm Pup Cup! 🐶 I'm Blossom's built-in helper — I can redesign your pages and answer questions about the app." },
+  { keywords: ["are you ai", "are you a real ai", "are you chatgpt", "are you claude", "real ai", "are you a robot", "are you a bot"], answer: "Honest answer: I'm not a connected AI model like ChatGPT — I'm a built-in helper that understands a wide range of phrases and app questions. That keeps Blossom completely free with nothing to set up! 🐾" },
+  { keywords: ["what is this app", "what is blossom", "what does this app do", "what can this app do", "what does blossom do"], answer: "Blossom is your scrapbook photo journal 🌸 — create journals, fill pages with photos, stickers, text and music, then read them back like a real flip-book, notepad, scrapbook, or diary." },
+  { keywords: ["new journal", "create a journal", "make a journal", "start a journal", "add a journal"], answer: "Tap the ➕ in the Journals tab, or the pink ➕ on the bottom nav, to start a new journal!" },
+  { keywords: ["add a photo", "add photo", "add a picture", "add picture", "upload a photo", "upload photo", "insert a photo", "put a photo"], answer: "Open a page and tap the 📷 Photo button in the toolbar — you can drag, resize, and rotate it once it's on the page." },
+  { keywords: ["add a sticker", "add sticker", "put a sticker", "sticker tab", "signature sticker", "emoji sticker"], answer: "Tap the ⭐ Sticker button on a page — you'll find Signature stickers, Emoji, and a Yours tab for your own uploaded images." },
+  { keywords: ["washi tape", "add tape", "tape button"], answer: "Tap the 🎀 Tape button on a page to add washi tape strips in lots of colors — drag them anywhere and rotate to taste." },
+  { keywords: ["add a calendar", "calendar item", "insert calendar", "calendar button"], answer: "Tap the 📅 Calendar button on a page — you can pick the month and choose from lots of calendar styles and colors." },
+  { keywords: ["add text", "write on the page", "add a caption", "add words", "type on the page"], answer: "Tap the T (Text) button on a page, type what you want, and pick a font and color — or just tell me \"write ...\" and I'll add it for you!" },
+  { keywords: ["change font", "different font", "font style", "my font", "the font", "change fonts"], answer: "Tap on any text you've added, then use the font picker that appears — there are 50 fonts to choose from, including handwritten styles." },
+  { keywords: ["page style", "background style", "change background", "page background", "change the page color", "page color"], answer: "Open Curate (tap the page title, or find it in the sidebar on tablets/desktop) and look for \"Page style\" — dotted, lined, whimsical, vintage, grid, or a custom color." },
+  { keywords: ["mood picker", "add a mood", "page mood"], answer: "In Curate, there's a Mood row with little emoji you can pick to capture how you were feeling that day." },
+  { keywords: ["add tags", "add location", "page tags", "page location"], answer: "In Curate you'll find Location and Tags fields — totally optional, but nice for remembering where you were and what the day was about." },
+  { keywords: ["change the theme", "glam mode", "midnight mode", "change my vibe", "change vibe", "dark mode", "switch theme"], answer: "Head to Profile → Theme to switch between Blossom, Glam Mode, and Midnight Mode any time!" },
+  { keywords: ["add music", "add spotify", "add a song", "spotify link", "play music", "background music", "add a spotify"], answer: "Open a page, tap the 🎵 music icon (or the page title on phones), and you can pick a vibe, upload a clip, or paste a Spotify link." },
+  { keywords: ["spotify not working", "spotify isn't working", "spotify doesn't work", "spotify link not working"], answer: "If it says \"shortened link,\" open that link once in your browser first, then copy the full open.spotify.com address from the address bar and paste that instead — shortened spotify.link URLs can't be read directly." },
+  { keywords: ["how do i read", "flip book", "flipbook", "notepad style", "scrapbook style", "diary style", "reading mode", "reading experience"], answer: "Open any journal and tap 📖 Read — pick between Flip Book, Notepad, Scrapbook, or Diary from the icon in the top right!" },
+  { keywords: ["design a cover", "journal cover", "curate cover", "add a cover", "cover for my journal"], answer: "Open a journal and tap the \"🎨 Curate cover\" button on the banner — it opens the same page editor so you can design a cover." },
+  { keywords: ["curate mean", "what is curate", "curate sidebar", "curate button", "what does curate do"], answer: "Curate is just what we call the page settings — title, date, mood, background, and music all live there. Tap the page title (or check the sidebar on bigger screens) to open it." },
+  { keywords: ["favorite a journal", "favourite a journal", "add to favorites", "add to favourites"], answer: "Tap the heart icon on a journal's cover, or open its ⋯ menu and choose \"Add to favorites.\"" },
+  { keywords: ["archive a journal", "archive journal", "how do i archive"], answer: "Open the journal's ⋯ menu and tap \"Archive journal\" — it'll be tucked away but not deleted." },
+  { keywords: ["delete a journal", "delete journal", "remove a journal"], answer: "Open the journal's ⋯ menu and tap \"Delete journal\" — this permanently removes it and its pages, so it'll ask you to confirm first." },
+  { keywords: ["rename a journal", "edit journal title", "change journal name", "rename journal"], answer: "Open the journal's ⋯ menu and tap \"Rename & edit\" to change its title or description." },
+  { keywords: ["is my data private", "who can see my", "is this private", "is this public", "is blossom private"], answer: "Totally private — everything lives in your own account and is never shared or public. 🔒" },
+  { keywords: ["how do i backup", "how do i back up", "backup my data", "backup my memories", "export my data", "download my data"], answer: "Go to Profile → Backup my memories to download everything as a file you keep safe." },
+  { keywords: ["restore from backup", "import my data", "bring back my data", "restore my memories"], answer: "Go to Profile → Restore from backup and choose the backup file you saved earlier." },
+  { keywords: ["sync across devices", "another device", "different phone", "same account", "multiple devices"], answer: "Yes! Sign in with the same email on any device and everything syncs automatically through your account." },
+  { keywords: ["work offline", "no internet", "offline mode", "without internet"], answer: "Blossom is a PWA, so it opens instantly and works offline once installed — changes sync back up the next time you're online." },
+  { keywords: ["add to home screen", "install the app", "install this app", "install blossom", "add to homescreen", "download the app", "get the app"], answer: "On iPhone: open this site in Safari, tap Share, then \"Add to Home Screen.\" On Android/desktop, your browser should offer an \"Install\" option." },
+  { keywords: ["erase all data", "delete everything", "wipe my account", "erase my account"], answer: "Profile → Erase all data will permanently delete everything in your account — it'll ask you to confirm since that can't be undone." },
+  { keywords: ["sign out", "log out", "logout"], answer: "Go to Profile → Sign out. You can always sign back in with the same email and password." },
+  { keywords: ["turn off sound", "disable sound", "mute sound", "sound and haptics", "turn off vibration", "turn off haptics"], answer: "Go to Profile → Sound & haptics and flip the toggle off — that mutes page-turn sounds and vibration on this device." },
+  { keywords: ["profile picture", "change my avatar", "add a photo of myself", "change my photo"], answer: "Tap your avatar at the top of the Profile screen and pick a photo from your gallery." },
+  { keywords: ["memories tab", "on this day", "memories timeline"], answer: "The Memories tab shows all your pages in one timeline, plus an \"On This Day\" section on Home for pages from past years." },
+  { keywords: ["how do i undo", "undo a change", "undo button"], answer: "There's an undo/redo pair of arrows in the top-left of the page editor for stepping back and forward through your changes." },
+  { keywords: ["photo frame", "frame shape", "change the frame"], answer: "Tap a photo you've added and you'll see frame shape options in the toolbar that appears." },
 ];
 
 const FOLLOWUPS = [
@@ -93,7 +121,7 @@ function findMatch(text, table) {
 
 function matchFaq(text) {
   for (const item of FAQ) {
-    if (item.patterns.some((re) => re.test(text))) return item;
+    if (item.keywords.some((k) => text.includes(k))) return item;
   }
   return null;
 }
@@ -149,6 +177,12 @@ function interpret(rawText) {
   }
 
   if (!actions.length) {
+    if (QUESTION_RE.test(text)) {
+      return {
+        actions: [],
+        reply: "Hmm, I don't have a specific answer for that one yet — but ask me about creating journals, adding photos/stickers/music, changing themes, backups, or reading modes, and I can help! 🐾",
+      };
+    }
     return {
       actions: [],
       reply: "Hmm, I didn't quite catch that — try a color (\"make it lilac\"), a pattern (\"lined paper\"), something to add (\"add a crown\"), \"surprise me\", or ask me a question about the app! 🐾",

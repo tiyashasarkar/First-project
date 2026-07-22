@@ -234,8 +234,11 @@ function hexToRgb(hex) {
 // certainly why users hit "that doesn't look like a Spotify link" on
 // input that very much was one.
 const SPOTIFY_URI_RE = /spotify:(track|playlist|album|episode|show):([a-zA-Z0-9]+)/i;
-const SPOTIFY_URL_RE = /open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(track|playlist|album|episode|show)\/([a-zA-Z0-9]+)/i;
-const SPOTIFY_SHORTLINK_RE = /(spotify\.link|spotify\.app\.link|spoti\.fi)\//i;
+// Accepts open.spotify.com or bare spotify.com, an optional /intl-xx/ locale
+// segment, and an optional /embed/ segment, in any order/combination — real
+// copied links vary on all three.
+const SPOTIFY_URL_RE = /(?:open\.)?spotify\.com\/(?:intl-[a-z]{2}\/)?(?:embed\/)?(?:intl-[a-z]{2}\/)?(track|playlist|album|episode|show)\/([a-zA-Z0-9]+)/i;
+const SPOTIFY_SHORTLINK_RE = /(?:https?:\/\/)?(?:spotify\.link|spotify\.app\.link|spoti\.fi)\/\S*/i;
 
 function parseSpotifyLink(raw) {
   const text = (raw || "").trim();
@@ -244,7 +247,8 @@ function parseSpotifyLink(raw) {
   if (uriMatch) return { kind: uriMatch[1], id: uriMatch[2] };
   const urlMatch = text.match(SPOTIFY_URL_RE);
   if (urlMatch) return { kind: urlMatch[1], id: urlMatch[2] };
-  if (SPOTIFY_SHORTLINK_RE.test(text)) return { shortLink: true };
+  const shortMatch = text.match(SPOTIFY_SHORTLINK_RE);
+  if (shortMatch) return { shortLink: true, url: shortMatch[0].startsWith("http") ? shortMatch[0] : "https://" + shortMatch[0] };
   return null;
 }
 
@@ -1293,6 +1297,7 @@ function renderMusicSection(container) {
       <input type="text" data-f="spotify-input" placeholder="Paste a Spotify link…" style="flex:1;min-width:0;" />
       <button class="btn btn-primary" data-f="spotify-add">Add</button>
     </div>
+    <div data-f="spotify-hint" style="display:none;"></div>
     ${current ? `<button class="btn btn-block" data-f="remove" style="color:#c94f6a;margin-top:8px;">Remove music</button>` : ""}
   `;
   const grid = container.querySelector('[data-f="vibes"]');
@@ -1314,17 +1319,31 @@ function renderMusicSection(container) {
     grid.appendChild(b);
   });
   container.querySelector('[data-f="upload"]').addEventListener("click", () => pickAndUploadAudio(container));
+  const spotifyHint = container.querySelector('[data-f="spotify-hint"]');
   container.querySelector('[data-f="spotify-add"]').addEventListener("click", () => {
     const input = container.querySelector('[data-f="spotify-input"]');
     const parsed = parseSpotifyLink(input.value);
     if (!parsed) {
+      spotifyHint.style.display = "none";
       showToast("That doesn't look like a Spotify link — copy it from the Share menu.");
       return;
     }
     if (parsed.shortLink) {
-      showToast("That's a shortened link — open it once in a browser, then paste the full open.spotify.com link from the address bar.");
+      // Shortened spotify.link/spotify.app.link URLs redirect to the real
+      // link, but that redirect can't be read from client-side JS without
+      // a backend — so hand the user a real link to follow themselves
+      // instead of a dead-end error message.
+      spotifyHint.style.display = "block";
+      spotifyHint.innerHTML = `
+        <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin:8px 0 6px;">
+          That's a shortened link — tap it to open Spotify, then copy the full <b>open.spotify.com</b> link from the address bar and paste it back here.
+        </p>
+        <a href="${parsed.url}" target="_blank" rel="noopener" class="btn btn-secondary btn-block" style="text-decoration:none;">🔗 Open shortened link</a>
+      `;
+      showToast("That's a shortened link — see the tip below the Spotify field.");
       return;
     }
+    spotifyHint.style.display = "none";
     stopPageAudio();
     ed.page.audio = { type: "spotify", kind: parsed.kind, id: parsed.id };
     updateMusicUI();

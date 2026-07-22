@@ -3562,8 +3562,9 @@ html.theme-transitioning .sheet {
 }
 
 .home-cta-sub {
-  font-size: 13px;
-  color: var(--mauve);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
   margin-top: 3px;
 }
 
