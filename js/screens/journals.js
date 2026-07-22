@@ -2,6 +2,7 @@ import * as db from "../db.js";
 import { escapeHtml, formatDate, showToast, openSheet, closeSheet, confirmAction } from "../ui.js";
 import { openEditor } from "./editor.js";
 import { openCreateFlow } from "./create.js";
+import { openReader } from "./reader.js";
 
 async function coverStyle(journal) {
   if (journal.coverMediaId) {
@@ -115,8 +116,9 @@ export async function renderJournalDetail(container, journalId) {
       </div>
     </div>
     <div class="screen-scroll" style="flex:1;">
-      <div class="section" style="padding-top:18px;">
-        <button class="btn btn-primary btn-block" id="jd-add-page">+ Add a page to this journal</button>
+      <div class="section" style="padding-top:18px;display:flex;gap:10px;">
+        <button class="btn btn-primary" style="flex:1;" id="jd-add-page">+ Add a page</button>
+        ${pages.length ? `<button class="btn btn-secondary" style="flex:1;" id="jd-read">📖 Read</button>` : ""}
       </div>
       ${
         pages.length
@@ -128,6 +130,9 @@ export async function renderJournalDetail(container, journalId) {
 
   container.querySelector("#jd-back").addEventListener("click", () => window.blossomNavigate("journals"));
   container.querySelector("#jd-add-page").addEventListener("click", () => openCreateFlow({ journalId }));
+  if (pages.length) {
+    container.querySelector("#jd-read").addEventListener("click", () => openReader({ journalId }));
+  }
   container.querySelector("#jd-menu").addEventListener("click", () => openJournalMenu(journal, container, journalId));
 
   if (pages.length) {
