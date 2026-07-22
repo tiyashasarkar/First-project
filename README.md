@@ -119,14 +119,14 @@ This step is only for previewing on your computer — skip straight to Step 3 be
 
 iPhones need the app served over `https://` to install it properly. The easiest, free way, since your code already lives on GitHub, is **GitHub Pages** — no new accounts, no servers to manage.
 
-1. On GitHub, open your repository: `tiyashasarkar/first-project`.
+1. On GitHub, open your repository: `tiyashasarkar/First-project`.
 2. Make sure your Firebase changes (Step "Before anything else" above) are committed to the `main` branch — ask me to do this if you're not sure.
 3. Go to the repository's **Settings** tab → **Pages** (left sidebar).
 4. Under "Build and deployment" → **Source**, choose **"Deploy from a branch"**.
 5. Under **Branch**, select **main** and folder **/ (root)**, then click **Save**.
 6. Wait about a minute, then refresh the page — GitHub will show your live URL, something like:
    ```
-   https://tiyashasarkar.github.io/first-project/
+   https://tiyashasarkar.github.io/First-project/
    ```
 
 That URL is your permanent app address. Anytime you (or I) push more changes to `main`, it updates automatically — no redeploying by hand.
