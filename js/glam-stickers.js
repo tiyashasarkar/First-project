@@ -1,8 +1,9 @@
 // The Glam Mode sticker dock: a small collapsible cluster of playful,
 // interactive stickers that only appears when Glam Mode is the active
-// theme. Each sticker has its own lightweight animation + message.
-// Purely original hand-built vector artwork/names — no third-party
-// branding, logos, or wordmarks.
+// theme. Each sticker has its own lightweight animation and picks from a
+// pool of messages (never the same one twice in a row) so it stays fresh
+// on repeat taps. Purely original hand-built vector artwork/names — no
+// third-party branding, logos, or wordmarks.
 import { showToast } from "./ui.js";
 
 const STICKERS = [
@@ -21,10 +22,6 @@ const STICKERS = [
   {
     id: "manicure", run: runManicure,
     svg: `<svg viewBox="0 0 100 100"><rect x="38" y="10" width="24" height="16" rx="4" fill="#ff2f92"/><rect x="44" y="4" width="12" height="10" rx="3" fill="#7a1054"/><path d="M32 30 h36 l-6 55 a6 6 0 0 1-6 5 h-12 a6 6 0 0 1-6-5 z" fill="#fff"/><path d="M36 34 h28 l-5 48 a4 4 0 0 1-4 3.5 h-10 a4 4 0 0 1-4-3.5 z" fill="#ff6fc0"/></svg>`,
-  },
-  {
-    id: "heels", run: runHeels,
-    svg: `<svg viewBox="0 0 100 100"><path d="M20 55 C20 45 30 40 45 40 C60 40 70 35 78 28 C82 25 88 27 88 33 C88 40 80 44 80 52 C80 60 85 64 85 70 C85 76 78 80 68 80 L25 80 C18 80 14 76 14 70 C14 62 18 58 20 55 Z" fill="#ff2f92"/><rect x="78" y="52" width="6" height="26" rx="2" fill="#ff2f92"/></svg>`,
   },
   {
     id: "headphones", run: runHeadphones,
@@ -68,13 +65,36 @@ const STICKERS = [
   },
 ];
 
-const TICKET_MESSAGES = ["MAIN CHARACTER MOMENT", "PLOT TWIST INCOMING", "ROMANTICISE YOUR LIFE", "PINK ERA ACTIVATED", "TODAY'S FEATURE: YOU"];
-const CLAPPER_MESSAGES = ["AND... ACTION!", "SCENE ONE, TAKE ONE.", "THIS IS THE MOMENT."];
-const HEELS_MESSAGES = ["SHE'S BOOKED.", "SHE'S BUSY.", "SHE'S FABULOUS.", "WALKED IN. CHANGED THE VIBE."];
-const LOLLIPOP_MESSAGES = ["YOU'RE DOING BETTER THAN YOU THINK.", "MAIN CHARACTER BEHAVIOUR DETECTED.", "A LITTLE MORE PINK NEVER HURT ANYONE.", "YOU FOUND A LITTLE MOMENT OF JOY."];
-const CALL_MESSAGES = ["Hey gorgeous — just calling to remind you your life is literally a movie.", "You have main character energy today.", "Your next adventure is waiting for you."];
+const MESSAGES = {
+  boombox: ["The app suddenly has a soundtrack 🎶", "Turn it up, it's your scene.", "Main character playlist: loading.", "Every moment deserves a soundtrack.", "Vibe check: passed."],
+  ticket: ["MAIN CHARACTER MOMENT", "PLOT TWIST INCOMING", "ROMANTICISE YOUR LIFE", "PINK ERA ACTIVATED", "TODAY'S FEATURE: YOU", "ADMIT ONE: YOUR OWN STORY"],
+  lips: ["Kisses everywhere 💋", "Sealed with a kiss.", "Leaving your mark 💋", "Pucker up, main character.", "A little bit of glam, everywhere."],
+  manicure: ["Fresh manicure, don't touch anything for 10 minutes", "Hands looking expensive today.", "Manifesting with these nails 💅", "Fresh set, fresh era.", "Ten out of ten, no notes."],
+  headphones: ["Now playing: your main character soundtrack 🎧", "Tuning out the noise.", "In your own little world right now.", "Soundtrack: loading your best era.", "Headphones on, world off."],
+  lollipop: ["YOU'RE DOING BETTER THAN YOU THINK.", "MAIN CHARACTER BEHAVIOUR DETECTED.", "A LITTLE MORE PINK NEVER HURT ANYONE.", "YOU FOUND A LITTLE MOMENT OF JOY.", "SWEET TREAT, SWEETER YOU."],
+  clapper: ["AND... ACTION!", "SCENE ONE, TAKE ONE.", "THIS IS THE MOMENT.", "LIGHTS. CAMERA. YOU.", "CUT TO: SOMETHING GOOD."],
+  call: ["Hey gorgeous — just calling to remind you your life is literally a movie.", "You have main character energy today.", "Your next adventure is waiting for you.", "Calling to say: you're doing amazing.", "Just checking in — you're glowing today."],
+  plane: ["WISH YOU WERE HERE 💌", "NEXT STOP: SOMEWHERE MAGICAL.", "PACK LIGHT, DREAM BIG.", "JETTING OFF INTO A NEW CHAPTER.", "ADVENTURE MODE: ACTIVATED ✈️"],
+  mic: ["YOUR TURN 🎤 — write today's caption", "Spotlight's on you.", "Say something worth remembering.", "Mic drop moment incoming.", "This page is your stage."],
+  sunglasses: ["TOO ICONIC TO EXPLAIN 😎", "Too cool to care.", "Main character sunglasses, activated.", "Certified icon behavior.", "Shady, in the best way."],
+  car: ["SHE DROVE OFF INTO HER ERA.", "Windows down, worries gone.", "New scenery, new energy.", "Off to somewhere better.", "Plot device: a really good drive."],
+  perfume: ["SMELLS LIKE MAIN CHARACTER ENERGY", "A little spritz of confidence.", "Signature scent, signature era.", "Smells like a good decision.", "One spray, whole new mood."],
+  purse: ["EVERYTHING SHE NEEDS, NOTHING SHE DOESN'T.", "IT MATCHES THE VIBE.", "GRAB IT AND GO.", "PACKED FOR WHATEVER TODAY BRINGS.", "ESSENTIALS ONLY, DARLING."],
+  celebrate: ["GLAM WORLD: ACTIVATED 🎀"],
+};
 
-function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+const lastMessage = {};
+function pick(id) {
+  const arr = MESSAGES[id];
+  if (!arr || !arr.length) return "";
+  if (arr.length === 1) return arr[0];
+  let choice;
+  do {
+    choice = arr[Math.floor(Math.random() * arr.length)];
+  } while (choice === lastMessage[id]);
+  lastMessage[id] = choice;
+  return choice;
+}
 
 let root = null;
 let panel = null;
@@ -178,65 +198,6 @@ function spawnFloating(emoji, x, y, { count = 1, spread = 60, rise = 90, duratio
   }
 }
 
-function flyAcrossScreen(emoji, { message, fromRight = false, duration = 2200, y } = {}) {
-  const el = document.createElement("div");
-  el.className = "glam-flyover";
-  el.textContent = emoji;
-  const startY = y ?? window.innerHeight * (0.25 + Math.random() * 0.4);
-  el.style.top = startY + "px";
-  document.body.appendChild(el);
-  const startX = fromRight ? window.innerWidth + 40 : -40;
-  const endX = fromRight ? -40 : window.innerWidth + 40;
-  el.animate(
-    [
-      { transform: `translateX(${startX}px) translateY(-50%)` },
-      { transform: `translateX(${endX}px) translateY(-50%)` },
-    ],
-    { duration, easing: "linear" }
-  ).onfinish = () => el.remove();
-  if (message) setTimeout(() => showToast(message), duration * 0.35);
-}
-
-function walkAcrossBottom(emoji, message) {
-  const el = document.createElement("div");
-  el.className = "glam-flyover glam-walker";
-  el.textContent = emoji;
-  const y = window.innerHeight - 70;
-  el.style.top = y + "px";
-  document.body.appendChild(el);
-  const steps = 6;
-  const totalDuration = 1800;
-  let step = 0;
-  const stepTimer = setInterval(() => {
-    step++;
-    const x = (window.innerWidth / (steps + 1)) * step;
-    spawnFloating("✨", x, y + 30, { count: 1, rise: 6, spread: 6, duration: 400 });
-    if (step >= steps) clearInterval(stepTimer);
-  }, totalDuration / steps);
-  const anim = el.animate(
-    [{ transform: "translateX(-10vw)" }, { transform: "translateX(110vw)" }],
-    { duration: totalDuration, easing: "ease-in-out" }
-  );
-  anim.onfinish = () => el.remove();
-  setTimeout(() => showToast(message), totalDuration * 0.4);
-}
-
-// ---------------------------------------------------------------------
-// Individual sticker behaviors
-// ---------------------------------------------------------------------
-
-function runBoombox(btn) {
-  bump(btn);
-  const r = btn.getBoundingClientRect();
-  spawnFloating("🎵", r.left + r.width / 2, r.top, { count: 3, spread: 70, rise: 80 });
-  showToast("The app suddenly has a soundtrack 🎶");
-}
-
-function runTicket(btn) {
-  bump(btn);
-  showToast(pick(TICKET_MESSAGES));
-}
-
 function scatterKisses(count = 14) {
   for (let i = 0; i < count; i++) {
     const delay = Math.random() * 450;
@@ -264,39 +225,135 @@ function scatterKisses(count = 14) {
   }
 }
 
+// ---------------------------------------------------------------------
+// Plane sticker: a hand-drawn jet gliding through drifting hand-drawn
+// clouds on a gentle banked arc, instead of a flat emoji sliding by.
+// ---------------------------------------------------------------------
+
+const PLANE_SVG = `<svg viewBox="0 0 140 70" xmlns="http://www.w3.org/2000/svg">
+  <path d="M6 40 C 6 34 14 30 26 30 L58 30 L86 8 C 89 6 95 6 97 9 C 98.5 11 97.5 13.5 95 16 L76 32 L112 32 L124 22 C126 20 130 20 131 23 C 131.6 24.6 130.6 26.6 128 29 L118 38 L128 47 C 130.6 49.4 131.6 51.4 131 53 C 130 56 126 56 124 54 L112 44 L76 44 L95 60 C 97.5 62.5 98.5 65 97 67 C 95 70 89 70 86 68 L58 46 L26 46 C 14 46 6 42 6 40 Z" fill="#ff2f92"/>
+  <path d="M26 30 L58 30 L76 44 L26 46 C18 45 12 42.5 8 40 C12 37.5 18 31 26 30 Z" fill="#ff6fc0" opacity="0.55"/>
+  <circle cx="40" cy="38" r="3.4" fill="#fff" opacity="0.85"/>
+  <circle cx="52" cy="38" r="3.4" fill="#fff" opacity="0.85"/>
+</svg>`;
+
+const CLOUD_SVG = `<svg viewBox="0 0 120 60" xmlns="http://www.w3.org/2000/svg">
+  <path d="M20 46 C6 46 2 32 14 27 C13 15 30 8 40 16 C46 6 66 6 70 18 C86 15 96 28 88 38 C96 40 96 50 86 50 L24 50 C21 50 20 48 20 46 Z" fill="#fff" opacity="0.9"/>
+</svg>`;
+
+function flyPlaneThroughClouds() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const fromRight = Math.random() < 0.5;
+  const baseY = h * (0.16 + Math.random() * 0.32);
+
+  const sky = document.createElement("div");
+  sky.className = "glam-sky";
+  document.body.appendChild(sky);
+
+  // Drifting cloud backdrop, moving slower than the plane for parallax depth.
+  const cloudCount = 4;
+  for (let i = 0; i < cloudCount; i++) {
+    const cloud = document.createElement("div");
+    cloud.className = "glam-cloud";
+    cloud.innerHTML = CLOUD_SVG;
+    const cy = baseY + (Math.random() - 0.5) * h * 0.28;
+    const scale = 0.6 + Math.random() * 0.9;
+    cloud.style.top = cy + "px";
+    cloud.style.opacity = 0.35 + Math.random() * 0.35;
+    sky.appendChild(cloud);
+    const startX = fromRight ? w + 80 : -140;
+    const endX = fromRight ? -140 : w + 80;
+    cloud.animate(
+      [
+        { transform: `translateX(${startX}px) scale(${scale})` },
+        { transform: `translateX(${endX}px) scale(${scale})` },
+      ],
+      { duration: 3200 + Math.random() * 1400, easing: "linear", delay: i * 120 }
+    ).onfinish = () => cloud.remove();
+  }
+
+  const plane = document.createElement("div");
+  plane.className = "glam-plane";
+  plane.innerHTML = PLANE_SVG;
+  plane.style.top = baseY + "px";
+  sky.appendChild(plane);
+
+  const flip = fromRight ? " scaleX(-1)" : "";
+  const startX = fromRight ? w + 60 : -100;
+  const endX = fromRight ? -100 : w + 60;
+  const p1 = fromRight ? w * 0.72 : w * 0.28;
+  const p2 = w * 0.5;
+  const p3 = fromRight ? w * 0.28 : w * 0.72;
+  const bank = fromRight ? -1 : 1;
+  const duration = 3000;
+
+  const trailTimer = setInterval(() => {
+    const r = plane.getBoundingClientRect();
+    spawnFloating("✨", r.left + r.width / 2, r.top + r.height / 2, { count: 1, spread: 20, rise: 20, duration: 500 });
+  }, 220);
+
+  plane.animate(
+    [
+      { transform: `translate(${startX}px, 0px) rotate(0deg)${flip}`, offset: 0 },
+      { transform: `translate(${p1}px, -34px) rotate(${5 * bank}deg)${flip}`, offset: 0.28 },
+      { transform: `translate(${p2}px, 8px) rotate(${-4 * bank}deg)${flip}`, offset: 0.52 },
+      { transform: `translate(${p3}px, -26px) rotate(${5 * bank}deg)${flip}`, offset: 0.76 },
+      { transform: `translate(${endX}px, 0px) rotate(0deg)${flip}`, offset: 1 },
+    ],
+    { duration, easing: "ease-in-out" }
+  ).onfinish = () => {
+    clearInterval(trailTimer);
+    sky.remove();
+  };
+
+  setTimeout(() => showToast(pick("plane")), duration * 0.35);
+}
+
+// ---------------------------------------------------------------------
+// Individual sticker behaviors
+// ---------------------------------------------------------------------
+
+function runBoombox(btn) {
+  bump(btn);
+  const r = btn.getBoundingClientRect();
+  spawnFloating("🎵", r.left + r.width / 2, r.top, { count: 3, spread: 70, rise: 80 });
+  showToast(pick("boombox"));
+}
+
+function runTicket(btn) {
+  bump(btn);
+  showToast(pick("ticket"));
+}
+
 function runLips(btn) {
   bump(btn);
   scatterKisses();
-  showToast("Kisses everywhere 💋");
+  showToast(pick("lips"));
 }
 
 function runManicure(btn) {
   bump(btn);
   const r = btn.getBoundingClientRect();
   spawnFloating("💅", r.left + r.width / 2, r.top, { count: 4, spread: 60, rise: 70 });
-  showToast("Fresh manicure, don't touch anything for 10 minutes");
+  showToast(pick("manicure"));
 }
 
 function runHeadphones(btn) {
   bump(btn);
-  showToast("Now playing: your main character soundtrack 🎧");
+  showToast(pick("headphones"));
 }
 
 function runClapper(btn) {
   bump(btn);
-  showToast(pick(CLAPPER_MESSAGES));
-}
-
-function runHeels(btn) {
-  bump(btn);
-  walkAcrossBottom("👠", pick(HEELS_MESSAGES));
+  showToast(pick("clapper"));
 }
 
 function runLollipop(btn) {
   btn.classList.remove("glam-spin");
   void btn.offsetWidth;
   btn.classList.add("glam-spin");
-  showToast(pick(LOLLIPOP_MESSAGES));
+  showToast(pick("lollipop"));
 }
 
 function runPhone(btn) {
@@ -321,19 +378,19 @@ function openSheetLikeCall(btn) {
   };
   card.querySelector(".glam-call-answer").addEventListener("click", () => {
     cleanup();
-    showToast(pick(CALL_MESSAGES));
+    showToast(pick("call"));
   });
   setTimeout(cleanup, 4500);
 }
 
 function runPlane(btn) {
   bump(btn);
-  flyAcrossScreen("✈️", { message: "WISH YOU WERE HERE 💌", fromRight: Math.random() < 0.5 });
+  flyPlaneThroughClouds();
 }
 
 function runMic(btn) {
   bump(btn);
-  showToast("YOUR TURN 🎤 — write today's caption");
+  showToast(pick("mic"));
 }
 
 function driveOff(emoji, message) {
@@ -355,24 +412,24 @@ function driveOff(emoji, message) {
 
 function runSunglasses(btn) {
   bump(btn);
-  showToast("TOO ICONIC TO EXPLAIN 😎");
+  showToast(pick("sunglasses"));
 }
 
 function runCar(btn) {
   bump(btn);
-  driveOff("🚗", "SHE DROVE OFF INTO HER ERA.");
+  driveOff("🚗", pick("car"));
 }
 
 function runPerfume(btn) {
   bump(btn);
   const r = btn.getBoundingClientRect();
   spawnFloating("✨", r.left + r.width / 2, r.top, { count: 5, spread: 50, rise: 60 });
-  showToast("SMELLS LIKE MAIN CHARACTER ENERGY");
+  showToast(pick("perfume"));
 }
 
 function runPurse(btn) {
   bump(btn);
-  showToast(pick(["EVERYTHING SHE NEEDS, NOTHING SHE DOESN'T.", "IT MATCHES THE VIBE.", "GRAB IT AND GO."]));
+  showToast(pick("purse"));
 }
 
 function celebrate() {
@@ -385,8 +442,7 @@ function celebrate() {
     spawnFloating("💗", r.left + r.width / 2, r.top + r.height / 2, { count: 5, spread: 120, rise: 110, duration: 1200 });
     spawnFloating("✨", r.left + r.width / 2, r.top + r.height / 2, { count: 4, spread: 100, rise: 90, duration: 1000 });
   }
-  showToast("GLAM WORLD: ACTIVATED 🎀");
-  setTimeout(() => flyAcrossScreen("✈️", { fromRight: false, duration: 1800 }), 300);
-  setTimeout(() => walkAcrossBottom("👠", "SHE'S FABULOUS."), 500);
+  showToast(pick("celebrate"));
+  setTimeout(() => flyPlaneThroughClouds(), 300);
   setTimeout(() => scatterKisses(6), 700);
 }
