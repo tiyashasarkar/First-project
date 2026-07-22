@@ -120,7 +120,7 @@ async function buildInitialItems(template, files) {
     URL.revokeObjectURL(url);
   }
   if (uploadFailed) {
-    showToast("Photo storage isn't set up yet on this account — see the README to add it. Continuing without photos for now.");
+    showToast("Some photos couldn't be saved — please try again. Continuing without them for now.");
   }
 
   if (template === "daily") {
@@ -916,7 +916,7 @@ function wireChrome() {
       showToast(`Added ${added} photo${added > 1 ? "s" : ""} 🌸`);
     }
     if (uploadFailed) {
-      showToast("Photo storage isn't set up yet on this account — see the README to add it.");
+      showToast("Some photos couldn't be saved — please try again.");
     }
   });
 }
