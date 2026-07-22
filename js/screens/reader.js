@@ -116,7 +116,7 @@ function setPageRotation(deg) {
   pageEl.style.transform = `rotate${currentAxis()}(${deg}deg)`;
 }
 
-const LOCK_SVG = `<svg viewBox="0 0 40 50"><rect x="4" y="20" width="32" height="26" rx="5" fill="#caa14a"/><rect x="4" y="20" width="32" height="8" rx="4" fill="#e8c98a"/><path d="M11 20 v-6 a9 9 0 0 1 18 0 v6" stroke="#b8933e" stroke-width="5" fill="none"/><circle cx="20" cy="33" r="4" fill="#7a5a1e"/><rect x="18.5" y="33" width="3" height="8" fill="#7a5a1e"/></svg>`;
+const LOCK_SVG = `<svg viewBox="0 0 40 50"><rect x="4" y="20" width="32" height="26" rx="5" fill="#d9a06c"/><rect x="4" y="20" width="32" height="8" rx="4" fill="#ffdcc0"/><path d="M11 20 v-6 a9 9 0 0 1 18 0 v6" stroke="#b8724a" stroke-width="5" fill="none"/><circle cx="20" cy="33" r="4" fill="#7a4a30"/><rect x="18.5" y="33" width="3" height="8" fill="#7a4a30"/></svg>`;
 
 function renderBinding() {
   const stage = document.getElementById("rd-stage");
@@ -228,6 +228,8 @@ function updateChrome() {
   document.getElementById("rd-navzone-next").style.visibility = state.index === state.pages.length - 1 ? "hidden" : "visible";
 }
 
+const CORNER_ORNAMENT_SVG = `<svg viewBox="0 0 60 60"><path d="M4 4 Q26 4 26 26 Q26 44 44 44" stroke="#f0d9a0" stroke-width="1.6" fill="none" opacity="0.85"/><circle cx="4" cy="4" r="2.6" fill="#f0d9a0"/><path d="M10 16 Q18 18 16 26" stroke="#f0d9a0" stroke-width="1.1" fill="none" opacity="0.7"/></svg>`;
+
 function paintCover(pageEl) {
   const journal = state.journal;
   if (journal.cover?.items?.length) {
@@ -235,7 +237,15 @@ function paintCover(pageEl) {
     return;
   }
   pageEl.className = "canvas-page reader-fallback-cover style-" + state.style;
-  pageEl.innerHTML = `<div class="reader-cover-title">${escapeHtml(journal.title || "Untitled Journal")}</div>`;
+  pageEl.innerHTML = `
+    <div class="reader-cover-ornament">${CORNER_ORNAMENT_SVG}</div>
+    <div class="reader-cover-sparkle" style="top:20%;right:20%;"></div>
+    <div class="reader-cover-sparkle" style="top:40%;left:16%;animation-delay:1.1s;"></div>
+    <div class="reader-cover-content">
+      <div class="reader-cover-rule"></div>
+      <div class="reader-cover-title">${escapeHtml(journal.title || "Untitled Journal")}</div>
+    </div>
+  `;
   const coverUrl = journal.coverMediaId && state.urlCache.get(journal.coverMediaId);
   if (coverUrl) pageEl.style.background = `url('${coverUrl}') center/cover`;
   else if (journal.coverColor) pageEl.style.background = journal.coverColor;
@@ -267,7 +277,8 @@ function waitForTransition(el) {
 async function flipTo(newIndex, direction) {
   if (!state || state.animating || newIndex < -1 || newIndex >= state.pages.length) return;
   state.animating = true;
-  playFlipSound(state.style);
+  playFlipSound(state.style, direction);
+  db.hapticFeedback(6);
 
   const pageEl = document.getElementById("rd-page");
   const sign = direction === "next" ? -1 : 1;
@@ -275,6 +286,7 @@ async function flipTo(newIndex, direction) {
   pageEl.style.transition = "transform 0.26s cubic-bezier(.4,0,.2,1)";
   setPageRotation(sign * 100);
   await waitForTransition(pageEl);
+  if (!state) return; // reader was closed mid-flip
 
   if (newIndex === -1) paintCover(pageEl);
   else {
@@ -290,6 +302,7 @@ async function flipTo(newIndex, direction) {
   pageEl.style.transition = "transform 0.26s cubic-bezier(.4,0,.2,1)";
   setPageRotation(0);
   await waitForTransition(pageEl);
+  if (!state) return; // reader was closed mid-flip
 
   state.animating = false;
 }
@@ -302,7 +315,7 @@ function noiseBuffer(ctx, duration) {
   return buffer;
 }
 
-function playNoiseLayer(ctx, { duration, filterType, freqStart, freqMid, freqEnd, Q = 0.7, gainPeak = 0.4, attack = 0.03, startTime = 0 }) {
+function playNoiseLayer(ctx, { duration, filterType, freqStart, freqMid, freqEnd, Q = 0.6, gainPeak = 0.3, attack = 0.016, startTime = 0, pan = 0 }) {
   const src = ctx.createBufferSource();
   src.buffer = noiseBuffer(ctx, duration);
   const filter = ctx.createBiquadFilter();
@@ -310,61 +323,85 @@ function playNoiseLayer(ctx, { duration, filterType, freqStart, freqMid, freqEnd
   filter.Q.value = Q;
   const t0 = ctx.currentTime + startTime;
   filter.frequency.setValueAtTime(freqStart, t0);
-  if (freqMid !== undefined) filter.frequency.exponentialRampToValueAtTime(freqMid, t0 + duration * 0.5);
+  if (freqMid !== undefined) filter.frequency.exponentialRampToValueAtTime(freqMid, t0 + duration * 0.45);
   filter.frequency.exponentialRampToValueAtTime(freqEnd, t0 + duration);
+  // A gentle top-end roll-off so the noise burst reads as soft paper
+  // rather than a harsh, tinny hiss.
+  const smooth = ctx.createBiquadFilter();
+  smooth.type = "lowpass";
+  smooth.frequency.value = 5000;
+  smooth.Q.value = 0.3;
   const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.001, t0);
+  gain.gain.setValueAtTime(0.0001, t0);
   gain.gain.linearRampToValueAtTime(gainPeak, t0 + attack);
-  gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
   src.connect(filter);
-  filter.connect(gain);
+  filter.connect(smooth);
+  let out = smooth;
+  if (ctx.createStereoPanner) {
+    const panner = ctx.createStereoPanner();
+    panner.pan.setValueAtTime(pan, t0);
+    out.connect(panner);
+    out = panner;
+  }
+  out.connect(gain);
   gain.connect(ctx.destination);
   src.start(t0);
   src.stop(t0 + duration + 0.02);
   return t0 + duration;
 }
 
-function playTone(ctx, { freq, freqEnd, duration, gainPeak = 0.3, type = "sine", startTime = 0 }) {
+function playTone(ctx, { freq, freqEnd, duration, gainPeak = 0.18, type = "sine", startTime = 0, pan = 0 }) {
   const osc = ctx.createOscillator();
   osc.type = type;
   const t0 = ctx.currentTime + startTime;
   osc.frequency.setValueAtTime(freq, t0);
   if (freqEnd) osc.frequency.exponentialRampToValueAtTime(freqEnd, t0 + duration);
   const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.001, t0);
-  gain.gain.linearRampToValueAtTime(gainPeak, t0 + 0.008);
-  gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
-  osc.connect(gain);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.linearRampToValueAtTime(gainPeak, t0 + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+  let out = osc;
+  if (ctx.createStereoPanner) {
+    const panner = ctx.createStereoPanner();
+    panner.pan.setValueAtTime(pan, t0);
+    osc.connect(panner);
+    out = panner;
+  }
+  out.connect(gain);
   gain.connect(ctx.destination);
   osc.start(t0);
   osc.stop(t0 + duration + 0.02);
   return t0 + duration;
 }
 
-// Each journal type gets its own page-turn character: Notepad is a crisp,
-// high flick with a tiny coil tick; Scrapbook a thicker riffle with a soft
-// metal ring clink; Diary a hushed, low-passed leather creak with a deep
-// thump; Flip Book a fuller two-layer paper flutter with a hardcover thud.
-function playFlipSound(style) {
+// Each journal type gets its own soft, e-reader-quality page-turn: a
+// clean, low-gain paper swish (never a harsh noise burst or buzzy square
+// wave) that pans across the stereo field in the direction of the flip,
+// with a subtle low tone underneath for physical weight. Gated by the
+// user's Sound & Haptics preference in Profile.
+async function playFlipSound(style, direction) {
+  if (!(await db.isSoundEnabled())) return;
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     const ctx = new AudioCtx();
     let end = ctx.currentTime;
     const mark = (t) => { if (t > end) end = t; };
+    const pan = direction === "prev" ? -0.35 : 0.35;
 
     if (style === "notepad") {
-      mark(playNoiseLayer(ctx, { duration: 0.13, filterType: "bandpass", freqStart: 2600, freqMid: 5400, freqEnd: 2000, Q: 0.9, gainPeak: 0.4, attack: 0.01 }));
-      mark(playTone(ctx, { freq: 3400, freqEnd: 2800, duration: 0.05, gainPeak: 0.12, type: "square", startTime: 0.018 }));
+      mark(playNoiseLayer(ctx, { duration: 0.15, filterType: "bandpass", freqStart: 2100, freqMid: 3600, freqEnd: 1700, Q: 0.7, gainPeak: 0.26, attack: 0.014, pan }));
+      mark(playTone(ctx, { freq: 2100, freqEnd: 1500, duration: 0.055, gainPeak: 0.06, type: "sine", startTime: 0.02, pan }));
     } else if (style === "scrapbook") {
-      mark(playNoiseLayer(ctx, { duration: 0.26, filterType: "bandpass", freqStart: 1000, freqMid: 3000, freqEnd: 800, Q: 0.6, gainPeak: 0.46, attack: 0.03 }));
-      mark(playTone(ctx, { freq: 1900, freqEnd: 1500, duration: 0.22, gainPeak: 0.09, type: "sine", startTime: 0.05 }));
+      mark(playNoiseLayer(ctx, { duration: 0.25, filterType: "bandpass", freqStart: 850, freqMid: 2300, freqEnd: 720, Q: 0.55, gainPeak: 0.28, attack: 0.02, pan }));
+      mark(playTone(ctx, { freq: 1450, freqEnd: 1100, duration: 0.2, gainPeak: 0.05, type: "sine", startTime: 0.05, pan }));
     } else if (style === "diary") {
-      mark(playNoiseLayer(ctx, { duration: 0.3, filterType: "lowpass", freqStart: 900, freqMid: 500, freqEnd: 650, Q: 0.5, gainPeak: 0.38, attack: 0.05 }));
-      mark(playTone(ctx, { freq: 170, freqEnd: 85, duration: 0.16, gainPeak: 0.11, type: "sine", startTime: 0.03 }));
+      mark(playNoiseLayer(ctx, { duration: 0.3, filterType: "lowpass", freqStart: 700, freqMid: 420, freqEnd: 560, Q: 0.4, gainPeak: 0.24, attack: 0.045, pan }));
+      mark(playTone(ctx, { freq: 150, freqEnd: 78, duration: 0.16, gainPeak: 0.08, type: "sine", startTime: 0.025, pan }));
     } else {
-      mark(playNoiseLayer(ctx, { duration: 0.22, filterType: "bandpass", freqStart: 1200, freqMid: 3500, freqEnd: 900, Q: 0.7, gainPeak: 0.42, attack: 0.03 }));
-      mark(playNoiseLayer(ctx, { duration: 0.16, filterType: "bandpass", freqStart: 1600, freqMid: 4200, freqEnd: 1200, Q: 0.9, gainPeak: 0.24, attack: 0.02, startTime: 0.05 }));
-      mark(playTone(ctx, { freq: 130, freqEnd: 70, duration: 0.14, gainPeak: 0.13, type: "sine", startTime: 0.01 }));
+      mark(playNoiseLayer(ctx, { duration: 0.22, filterType: "bandpass", freqStart: 950, freqMid: 2400, freqEnd: 800, Q: 0.6, gainPeak: 0.26, attack: 0.018, pan }));
+      mark(playNoiseLayer(ctx, { duration: 0.15, filterType: "bandpass", freqStart: 1200, freqMid: 2700, freqEnd: 1000, Q: 0.75, gainPeak: 0.14, attack: 0.014, startTime: 0.05, pan }));
+      mark(playTone(ctx, { freq: 115, freqEnd: 62, duration: 0.13, gainPeak: 0.09, type: "sine", startTime: 0.012, pan }));
     }
 
     setTimeout(() => ctx.close(), (end - ctx.currentTime) * 1000 + 100);

@@ -4,12 +4,37 @@ import { showToast, confirmAction, openSheet, closeSheet, escapeHtml } from "../
 import { THEMES, getTheme, setTheme } from "../theme.js";
 import { mountMascot } from "../mascot.js";
 
+async function getProfileSettings() {
+  return (await db.get("settings", "profile")) || { id: "profile" };
+}
+
+function pickImage() {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.style.display = "none";
+    document.body.appendChild(input);
+    input.addEventListener("change", () => {
+      const file = input.files?.[0] || null;
+      document.body.removeChild(input);
+      resolve(file);
+    });
+    input.click();
+  });
+}
+
 export async function renderProfile(container) {
-  const journals = await db.getAll("journals");
-  const pages = await db.getAll("pages");
+  const [journals, pages, profile, soundOn] = await Promise.all([
+    db.getAll("journals"),
+    db.getAll("pages"),
+    getProfileSettings(),
+    db.isSoundEnabled(),
+  ]);
   const email = auth.currentUser?.email || "";
   const currentThemeId = (await getTheme()) || "blossom";
   const currentTheme = THEMES.find((t) => t.id === currentThemeId) || THEMES[0];
+  const avatarUrl = profile.avatarMediaId ? await db.getMediaURL(profile.avatarMediaId) : null;
 
   container.innerHTML = `
     <div class="topbar">
@@ -18,19 +43,34 @@ export async function renderProfile(container) {
     </div>
     <div class="section">
       <div class="profile-head">
-        <div class="profile-avatar">🌸</div>
+        <div class="profile-avatar-wrap">
+          <button class="profile-avatar" id="pf-avatar" aria-label="Change profile picture">
+            ${avatarUrl ? `<img src="${avatarUrl}" alt="" />` : "🌸"}
+          </button>
+          <div class="profile-avatar-badge"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13.5" r="3.2"/></svg></div>
+        </div>
         <div>
-          <div style="font-family:var(--font-display);font-weight:600;font-size:17px;color:var(--mauve-dark);">${escapeHtml(email) || "Blossom Journal"}</div>
-          <div style="font-size:12.5px;color:var(--ink-soft);margin-top:2px;">${journals.length} journals · ${pages.length} pages · synced to your account</div>
+          <div class="profile-name">${escapeHtml(email) || "Blossom Journal"}</div>
+          <div class="profile-stats">${journals.length} journals · ${pages.length} pages · synced to your account</div>
         </div>
       </div>
 
-      <div class="settings-list">
+      <div class="settings-group-label">Appearance</div>
+      <div class="settings-group">
         <button class="settings-row" id="pf-theme" style="width:100%;background:none;border:none;text-align:left;">
           <div class="si">${currentTheme.emoji}</div>
           <div><div class="label">Theme</div><div class="sub">${currentTheme.label} — tap to change</div></div>
           <div class="chev">›</div>
         </button>
+        <div class="settings-row" id="pf-sound-row">
+          <div class="si"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 5V4L8 9H4z"/><path d="M17 8a5 5 0 0 1 0 8"/></svg></div>
+          <div><div class="label">Sound &amp; haptics</div><div class="sub">Page-turn sounds and vibration on this device</div></div>
+          <button class="pf-toggle${soundOn ? " on" : ""}" id="pf-sound-toggle" aria-label="Toggle sound and haptics"></button>
+        </div>
+      </div>
+
+      <div class="settings-group-label">Your data</div>
+      <div class="settings-group">
         <button class="settings-row" id="pf-backup" style="width:100%;background:none;border:none;text-align:left;">
           <div class="si"><svg viewBox="0 0 24 24"><path d="M12 3v13M7 11l5 5 5-5"/><path d="M5 21h14"/></svg></div>
           <div><div class="label">Backup my memories</div><div class="sub">Save everything to a file you keep safe</div></div>
@@ -45,6 +85,10 @@ export async function renderProfile(container) {
           <div class="si"><svg viewBox="0 0 24 24"><path d="M12 2 3 6.5V12c0 5.4 3.8 9.4 9 10 5.2-.6 9-4.6 9-10V6.5z"/></svg></div>
           <div><div class="label">Privacy</div><div class="sub">Your memories are private to your account — never shared or public</div></div>
         </div>
+      </div>
+
+      <div class="settings-group-label">Account</div>
+      <div class="settings-group">
         <button class="settings-row" id="pf-signout" style="width:100%;background:none;border:none;text-align:left;">
           <div class="si"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg></div>
           <div><div class="label">Sign out</div><div class="sub">You can sign back in anytime on any device</div></div>
@@ -62,7 +106,14 @@ export async function renderProfile(container) {
     </div>
   `;
 
+  container.querySelector("#pf-avatar").addEventListener("click", () => changeAvatar(container));
   container.querySelector("#pf-theme").addEventListener("click", () => openThemeSheet(container));
+  container.querySelector("#pf-sound-toggle").addEventListener("click", async (e) => {
+    const next = !soundOn;
+    await db.setSoundEnabled(next);
+    e.currentTarget.classList.toggle("on", next);
+    if (next) db.hapticFeedback(10);
+  });
   container.querySelector("#pf-backup").addEventListener("click", doBackup);
   container.querySelector("#pf-restore").addEventListener("click", doRestore);
   container.querySelector("#pf-signout").addEventListener("click", () => {
@@ -86,6 +137,22 @@ export async function renderProfile(container) {
       },
     });
   });
+}
+
+async function changeAvatar(container) {
+  const file = await pickImage();
+  if (!file) return;
+  showToast("Updating your photo…");
+  try {
+    const mediaId = await db.saveMediaBlob(file);
+    const profile = await getProfileSettings();
+    profile.avatarMediaId = mediaId;
+    await db.put("settings", profile);
+    showToast("Profile picture updated 🌸");
+    renderProfile(container);
+  } catch {
+    showToast("That photo couldn't be used — try a different one");
+  }
 }
 
 function openThemeSheet(container) {

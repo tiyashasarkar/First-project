@@ -69,6 +69,21 @@ export async function kvSet(key, value) {
   }
 }
 
+// ---- sound & haptics: a per-device preference (like theme), so a quiet
+// phone and a desktop with speakers can each be set independently ----
+export async function isSoundEnabled() {
+  return kvGet("soundEnabled", true);
+}
+
+export async function setSoundEnabled(value) {
+  return kvSet("soundEnabled", value);
+}
+
+export async function hapticFeedback(pattern = 8) {
+  if (!navigator.vibrate) return;
+  if (await isSoundEnabled()) navigator.vibrate(pattern);
+}
+
 // ---- domain helpers ----
 
 export async function createJournal(journal) {
