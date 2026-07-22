@@ -563,6 +563,60 @@ function applyPageBackground() {
   page.style.backgroundColor = ed.page.background === "custom" && ed.page.bgColor ? ed.page.bgColor : "";
 }
 
+// ---------------------------------------------------------------------
+// Assistant hook — the single controlled entry point js/assistant.js
+// (the puppy redesign chatbot) uses to act on whatever page is currently
+// open, instead of reaching into this module's private editing state.
+// ---------------------------------------------------------------------
+
+export function isEditorOpen() {
+  return !!ed;
+}
+
+export function getEditorPaletteOptions() {
+  return PALETTES.map((p) => ({ id: p.id, label: p.label }));
+}
+
+export function getEditorBackgroundOptions() {
+  return [...PAGE_TEXTURES, ...PAGE_EXTRAS].map((s) => ({ id: s.id, label: s.label }));
+}
+
+export function assistantRedesign(action) {
+  if (!ed) return false;
+  if (action.type === "background") {
+    if (action.style) ed.page.background = action.style;
+    if (action.paletteId) ed.page.bgPalette = action.paletteId;
+    if (action.color) {
+      ed.page.background = "custom";
+      ed.page.bgColor = action.color;
+    }
+    applyPageBackground();
+  } else if (action.type === "sticker") {
+    addItem({ type: "sticker", emoji: action.emoji, w: 70, h: 70 });
+  } else if (action.type === "calendar") {
+    const now = new Date();
+    addItem({ type: "calendar", year: now.getFullYear(), month: now.getMonth(), calStyle: "classic", calPalette: ed.page.bgPalette || "rose", w: 230, h: 260 });
+  } else if (action.type === "text") {
+    addItem({ type: "text", w: 220, h: 140, font: "hand", color: TEXT_COLORS[0], size: 28, text: action.text });
+  } else if (action.type === "surprise") {
+    const texture = PAGE_TEXTURES[Math.floor(Math.random() * PAGE_TEXTURES.length)];
+    const palette = PALETTES[Math.floor(Math.random() * PALETTES.length)];
+    ed.page.background = texture.id;
+    ed.page.bgPalette = palette.id;
+    applyPageBackground();
+    const pool = ["🎀", "💗", "✨", "🌸", "⭐", "🌷", "💫", "🦢", "🍓", "🌼"];
+    const count = 2 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < count; i++) {
+      const emoji = pool[Math.floor(Math.random() * pool.length)];
+      addItem({ type: "sticker", emoji, w: 70, h: 70 });
+    }
+  } else {
+    return false;
+  }
+  ed.saved = false;
+  return true;
+}
+
 // Read-only page renderer shared with the flip-book/notepad reader
 // (js/screens/reader.js) so the "what a page looks like" logic lives in
 // exactly one place instead of being reimplemented for viewing.
