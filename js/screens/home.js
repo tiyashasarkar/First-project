@@ -33,10 +33,10 @@ export async function renderHome(container) {
   const continueEditing = pages[0];
 
   container.innerHTML = `
-    <div class="topbar">
+    <div class="topbar home-topbar">
       <div class="eyebrow">${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</div>
       <div class="topbar-row">
-        <h1>${greeting()} 🌸</h1>
+        <h1 class="home-greeting">${greeting()} <span class="home-greeting-emoji">🌸</span></h1>
       </div>
     </div>
 
@@ -50,12 +50,13 @@ export async function renderHome(container) {
     }
 
     <div class="section">
-      <button class="card" id="create-cta" style="width:100%;display:flex;align-items:center;gap:14px;padding:18px;text-align:left;background:var(--grad-hero);border:none;">
-        <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.55);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📷</div>
-        <div>
-          <div style="font-family:var(--font-display);font-weight:600;color:var(--mauve-dark);font-size:16.5px;">Create a memory</div>
-          <div style="font-size:12.5px;color:var(--mauve);margin-top:2px;">Turn today's photos into a page</div>
+      <button class="home-cta fade-in" id="create-cta">
+        <div class="home-cta-icon">📷</div>
+        <div class="home-cta-text">
+          <div class="home-cta-title">Create a memory</div>
+          <div class="home-cta-sub">Turn today's photos into a page</div>
         </div>
+        <div class="home-cta-arrow"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></div>
       </button>
     </div>
 
@@ -83,7 +84,11 @@ export async function renderHome(container) {
 
   if (onThisDay.length) {
     const wrap = container.querySelector("#otd-scroll");
-    for (const p of onThisDay) wrap.appendChild(await memoryCard(p, journalById, true));
+    for (const [i, p] of onThisDay.entries()) {
+      const card = await memoryCard(p, journalById, true);
+      card.style.animationDelay = i * 45 + "ms";
+      wrap.appendChild(card);
+    }
   }
 
   if (continueEditing) {
@@ -106,7 +111,11 @@ export async function renderHome(container) {
 
   if (recent.length) {
     const wrap = container.querySelector("#recent-scroll");
-    for (const p of recent) wrap.appendChild(await memoryCard(p, journalById));
+    for (const [i, p] of recent.entries()) {
+      const card = await memoryCard(p, journalById);
+      card.style.animationDelay = i * 45 + "ms";
+      wrap.appendChild(card);
+    }
   }
 }
 

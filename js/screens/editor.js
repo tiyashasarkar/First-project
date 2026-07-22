@@ -377,12 +377,29 @@ function defaultTitle(template) {
   }[template] || "New Page";
 }
 
-export async function openEditor({ pageId, journalId, template = "blank", files = [] } = {}) {
-  returnScreen = journalId ? { name: "journal-detail", params: { journalId } } : { name: window.blossomState?.currentScreen || "home", params: {} };
+export async function openEditor({ pageId, journalId, template = "blank", files = [], coverForJournalId = null } = {}) {
+  returnScreen = coverForJournalId
+    ? { name: "journal-detail", params: { journalId: coverForJournalId } }
+    : journalId
+      ? { name: "journal-detail", params: { journalId } }
+      : { name: window.blossomState?.currentScreen || "home", params: {} };
   const screenEl = document.getElementById("screen-editor");
 
   let page;
-  if (pageId) {
+  let isCover = false;
+  if (coverForJournalId) {
+    isCover = true;
+    const journal = await db.get("journals", coverForJournalId);
+    const cover = journal?.cover || {};
+    page = {
+      id: null,
+      title: journal?.title || "Cover",
+      background: cover.background || "dot",
+      bgPalette: cover.bgPalette || "rose",
+      bgColor: cover.bgColor,
+      items: cover.items || [],
+    };
+  } else if (pageId) {
     page = await db.get("pages", pageId);
     returnScreen = { name: "journal-detail", params: { journalId: page.journalId } };
   } else {
@@ -414,6 +431,8 @@ export async function openEditor({ pageId, journalId, template = "blank", files 
     historyIndex: 0,
     urlCache: new Map(),
     saved: false,
+    isCover,
+    coverJournalId: coverForJournalId,
   };
 
   screenEl.innerHTML = buildShell();
@@ -421,6 +440,7 @@ export async function openEditor({ pageId, journalId, template = "blank", files 
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   screenEl.classList.add("active");
   setMascotVisible(false);
+  if (isCover) document.getElementById("ed-music").style.display = "none";
 
   await hydrateMedia();
   fitToViewport();
@@ -699,6 +719,11 @@ function makeHandle(kind, svgPath) {
 }
 
 function updateTitleBits() {
+  if (ed.isCover) {
+    document.getElementById("ed-title-txt").textContent = ed.page.title || "Journal";
+    document.getElementById("ed-date-txt").textContent = "Designing cover";
+    return;
+  }
   document.getElementById("ed-title-txt").textContent = ed.page.title || "Untitled";
   const d = ed.page.dateISO ? new Date(ed.page.dateISO + "T12:00:00") : new Date();
   document.getElementById("ed-date-txt").textContent = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) + (ed.page.mood ? "  " + ed.page.mood : "");
@@ -1354,57 +1379,59 @@ async function addNewPageToJournal() {
 }
 
 async function renderPageSettings(container) {
-  const recentColors = await db.kvGet("recentPageColors", []);
+  const recentColors = ed.isCover ? [] : await db.kvGet("recentPageColors", []);
   container.innerHTML = `
-    <button class="btn btn-secondary btn-block" data-f="addPage" style="margin-bottom:14px;">+ Add another page</button>
-    <div class="field"><label>Title</label><input type="text" data-f="title" value="${escapeHtml(ed.page.title || "")}" maxlength="50" /></div>
-    <div class="field"><label>Date</label><input type="date" data-f="date" value="${ed.page.dateISO || ""}" /></div>
-    <div class="field"><label>Mood</label><div class="mood-picker" data-f="mood"></div></div>
-    <div class="field"><label>Location (optional)</label><input type="text" data-f="loc" value="${escapeHtml(ed.page.location || "")}" placeholder="e.g. Rome, Italy" /></div>
-    <div class="field"><label>Tags (optional, comma separated)</label><input type="text" data-f="tags" value="${escapeHtml(ed.page.tags || "")}" placeholder="friends, sunny, birthday" /></div>
-    <div class="field"><label>Page style</label><div class="page-style-grid" data-f="bg"></div></div>
+    ${ed.isCover ? "" : `<button class="btn btn-secondary btn-block" data-f="addPage" style="margin-bottom:14px;">+ Add another page</button>`}
+    ${ed.isCover ? "" : `<div class="field"><label>Title</label><input type="text" data-f="title" value="${escapeHtml(ed.page.title || "")}" maxlength="50" /></div>`}
+    ${ed.isCover ? "" : `<div class="field"><label>Date</label><input type="date" data-f="date" value="${ed.page.dateISO || ""}" /></div>`}
+    ${ed.isCover ? "" : `<div class="field"><label>Mood</label><div class="mood-picker" data-f="mood"></div></div>`}
+    ${ed.isCover ? "" : `<div class="field"><label>Location (optional)</label><input type="text" data-f="loc" value="${escapeHtml(ed.page.location || "")}" placeholder="e.g. Rome, Italy" /></div>`}
+    ${ed.isCover ? "" : `<div class="field"><label>Tags (optional, comma separated)</label><input type="text" data-f="tags" value="${escapeHtml(ed.page.tags || "")}" placeholder="friends, sunny, birthday" /></div>`}
+    <div class="field"><label>${ed.isCover ? "Cover background" : "Page style"}</label><div class="page-style-grid" data-f="bg"></div></div>
     <div class="field${["blank", "custom"].includes(ed.page.background) ? " hidden" : ""}" data-f="paletteField">
       <label>Color palette (${PALETTES.length} to choose from)</label>
       <div class="palette-grid" data-f="bgPalette"></div>
     </div>
     <div class="field${ed.page.background === "custom" ? "" : " hidden"}" data-f="colorField">
-      <label>Page color</label>
+      <label>Cover color</label>
       <input type="color" data-f="bgColor" value="${ed.page.bgColor || "#fbe6ec"}" />
       ${recentColors.length ? `<div class="recent-color-row" data-f="recentColors">${recentColors.map((c) => `<button class="recent-color-swatch" style="background:${c}" data-color="${c}" title="${c}"></button>`).join("")}</div>` : ""}
     </div>
-    <div class="field"><label>Music</label><div data-f="music"></div></div>
+    ${ed.isCover ? "" : `<div class="field"><label>Music</label><div data-f="music"></div></div>`}
   `;
 
-  container.querySelector('[data-f="addPage"]').addEventListener("click", addNewPageToJournal);
+  if (!ed.isCover) {
+    container.querySelector('[data-f="addPage"]').addEventListener("click", addNewPageToJournal);
 
-  const titleInput = container.querySelector('[data-f="title"]');
-  titleInput.addEventListener("input", () => {
-    ed.page.title = titleInput.value.trim() || "Untitled";
-    updateTitleBits();
-  });
-  const dateInput = container.querySelector('[data-f="date"]');
-  dateInput.addEventListener("change", () => {
-    ed.page.dateISO = dateInput.value || ed.page.dateISO;
-    updateTitleBits();
-  });
-  const locInput = container.querySelector('[data-f="loc"]');
-  locInput.addEventListener("input", () => { ed.page.location = locInput.value.trim(); });
-  const tagsInput = container.querySelector('[data-f="tags"]');
-  tagsInput.addEventListener("input", () => { ed.page.tags = tagsInput.value.trim(); });
-
-  const moodWrap = container.querySelector('[data-f="mood"]');
-  MOODS.forEach((m) => {
-    const b = document.createElement("button");
-    b.textContent = m;
-    b.className = m === ed.page.mood ? "selected" : "";
-    b.addEventListener("click", () => {
-      ed.page.mood = ed.page.mood === m ? "" : m;
-      [...moodWrap.children].forEach((c) => c.classList.remove("selected"));
-      if (ed.page.mood) b.classList.add("selected");
+    const titleInput = container.querySelector('[data-f="title"]');
+    titleInput.addEventListener("input", () => {
+      ed.page.title = titleInput.value.trim() || "Untitled";
       updateTitleBits();
     });
-    moodWrap.appendChild(b);
-  });
+    const dateInput = container.querySelector('[data-f="date"]');
+    dateInput.addEventListener("change", () => {
+      ed.page.dateISO = dateInput.value || ed.page.dateISO;
+      updateTitleBits();
+    });
+    const locInput = container.querySelector('[data-f="loc"]');
+    locInput.addEventListener("input", () => { ed.page.location = locInput.value.trim(); });
+    const tagsInput = container.querySelector('[data-f="tags"]');
+    tagsInput.addEventListener("input", () => { ed.page.tags = tagsInput.value.trim(); });
+
+    const moodWrap = container.querySelector('[data-f="mood"]');
+    MOODS.forEach((m) => {
+      const b = document.createElement("button");
+      b.textContent = m;
+      b.className = m === ed.page.mood ? "selected" : "";
+      b.addEventListener("click", () => {
+        ed.page.mood = ed.page.mood === m ? "" : m;
+        [...moodWrap.children].forEach((c) => c.classList.remove("selected"));
+        if (ed.page.mood) b.classList.add("selected");
+        updateTitleBits();
+      });
+      moodWrap.appendChild(b);
+    });
+  }
 
   const bgWrap = container.querySelector('[data-f="bg"]');
   const colorField = container.querySelector('[data-f="colorField"]');
@@ -1458,7 +1485,7 @@ async function renderPageSettings(container) {
     });
   });
 
-  renderMusicSection(container.querySelector('[data-f="music"]'));
+  if (!ed.isCover) renderMusicSection(container.querySelector('[data-f="music"]'));
 }
 
 // ---------------------------------------------------------------------
@@ -1549,6 +1576,19 @@ function wireChrome() {
 }
 
 async function persist() {
+  if (ed.isCover) {
+    const journal = await db.get("journals", ed.coverJournalId);
+    if (!journal) { ed.saved = true; return null; }
+    journal.cover = {
+      background: ed.page.background,
+      bgPalette: ed.page.bgPalette,
+      bgColor: ed.page.bgColor,
+      items: ed.items,
+    };
+    await db.put("journals", journal);
+    ed.saved = true;
+    return journal;
+  }
   const thumbItem = ed.items.find((i) => i.type === "photo");
   const record = {
     ...ed.page,

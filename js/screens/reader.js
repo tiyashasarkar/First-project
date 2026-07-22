@@ -1,15 +1,24 @@
-// Full-screen, page-by-page journal viewer with a page-turn animation —
-// "Flip Book" hinges pages on the left like a real book, "Notepad" hinges
-// them on the top like flipping a spiral notepad — plus a synthesized
-// page-flip whoosh (Web Audio API, no licensed sound file). Bypasses the
-// normal screen router the same way the canvas editor does.
+// Full-screen, page-by-page journal viewer with four distinct physical
+// "book types" — Flip Book (stitched spine, side hinge), Notepad (spiral
+// coil, top hinge), Scrapbook (ring binder, side hinge), Diary (leather
+// spine + ribbon bookmark, side hinge) — each with a synthesized page-turn
+// whoosh (Web Audio API, no licensed sound file). Opens on the journal's
+// designed cover before page 1, for a real-book feel. Bypasses the normal
+// screen router the same way the canvas editor does.
 import * as db from "../db.js";
 import { renderStaticPage } from "./editor.js";
-import { openSheet, closeSheet, showToast } from "../ui.js";
+import { openSheet, closeSheet, showToast, escapeHtml } from "../ui.js";
 import { setMascotVisible } from "../mascot.js";
 
 const PAGE_W = 380;
 const PAGE_H = 507;
+
+const READER_STYLES = [
+  { id: "book", label: "Flip Book", icon: "📖", axis: "Y" },
+  { id: "notepad", label: "Notepad", icon: "🗒️", axis: "X" },
+  { id: "scrapbook", label: "Scrapbook", icon: "📔", axis: "Y" },
+  { id: "diary", label: "Diary", icon: "🔐", axis: "Y" },
+];
 
 let state = null;
 let resizeTimer = null;
@@ -23,9 +32,9 @@ export async function openReader({ journalId }) {
   }
 
   const style = await db.kvGet("readerStyle", "book");
-  state = { journal, pages, index: 0, style, urlCache: new Map(), animating: false, zoom: 1 };
+  state = { journal, pages, index: -1, style, urlCache: new Map(), animating: false, zoom: 1 };
 
-  await hydrateAllMedia(pages, state.urlCache);
+  await hydrateAllMedia(journal, pages, state.urlCache);
 
   document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
   document.getElementById("bottom-nav").style.display = "none";
@@ -37,7 +46,9 @@ export async function openReader({ journalId }) {
 
   wireChrome();
   state.zoom = fitReaderZoom();
+  applyZoom();
   applyOrigin();
+  renderBinding();
   paintPage();
   window.addEventListener("resize", onResize);
 }
@@ -51,7 +62,13 @@ function closeReader() {
   window.blossomNavigate("journal-detail", { journalId });
 }
 
-async function hydrateAllMedia(pages, urlCache) {
+async function hydrateAllMedia(journal, pages, urlCache) {
+  if (journal.coverMediaId) await db.getMediaURL(journal.coverMediaId, urlCache);
+  for (const item of journal.cover?.items || []) {
+    if ((item.type === "photo" || item.type === "sticker") && item.mediaId) {
+      await db.getMediaURL(item.mediaId, urlCache);
+    }
+  }
   for (const page of pages) {
     for (const item of page.items || []) {
       if ((item.type === "photo" || item.type === "sticker") && item.mediaId) {
@@ -65,7 +82,7 @@ function fitReaderZoom() {
   const stage = document.getElementById("rd-stage");
   if (!stage) return 1;
   const rect = stage.getBoundingClientRect();
-  const zoom = Math.min((rect.width - 40) / PAGE_W, (rect.height - 40) / PAGE_H, 1.1);
+  const zoom = Math.min((rect.width - 56) / PAGE_W, (rect.height - 56) / PAGE_H, 1.1);
   return Math.max(0.3, zoom);
 }
 
@@ -74,21 +91,42 @@ function onResize() {
   resizeTimer = setTimeout(() => {
     if (!state) return;
     state.zoom = fitReaderZoom();
-    setTransform(0);
+    applyZoom();
   }, 150);
+}
+
+function applyZoom() {
+  const book = document.getElementById("rd-book");
+  if (book) book.style.transform = `scale(${state.zoom})`;
+}
+
+function currentAxis() {
+  return (READER_STYLES.find((s) => s.id === state.style) || READER_STYLES[0]).axis;
 }
 
 function applyOrigin() {
   const pageEl = document.getElementById("rd-page");
   if (!pageEl) return;
-  pageEl.style.transformOrigin = state.style === "notepad" ? "center top" : "left center";
+  pageEl.style.transformOrigin = currentAxis() === "X" ? "center top" : "left center";
 }
 
-function setTransform(deg) {
+function setPageRotation(deg) {
   const pageEl = document.getElementById("rd-page");
   if (!pageEl) return;
-  const axis = state.style === "notepad" ? "X" : "Y";
-  pageEl.style.transform = `scale(${state.zoom}) rotate${axis}(${deg}deg)`;
+  pageEl.style.transform = `rotate${currentAxis()}(${deg}deg)`;
+}
+
+function renderBinding() {
+  const binding = document.getElementById("rd-binding");
+  const pagestack = document.getElementById("rd-pagestack");
+  const ribbon = document.getElementById("rd-ribbon");
+  if (!binding) return;
+  binding.className = "reader-binding style-" + state.style;
+  binding.innerHTML = state.style === "scrapbook"
+    ? [18, 50, 82].map((t) => `<span class="ring" style="top:${t}%"></span>`).join("")
+    : "";
+  pagestack.style.display = state.style === "notepad" ? "none" : "block";
+  ribbon.style.display = state.style === "diary" ? "block" : "none";
 }
 
 function buildShell() {
@@ -103,7 +141,12 @@ function buildShell() {
     </div>
     <div class="reader-stage" id="rd-stage">
       <button class="reader-navzone left" id="rd-navzone-prev" aria-label="Previous page"></button>
-      <div class="canvas-page" id="rd-page"></div>
+      <div class="reader-book" id="rd-book">
+        <div class="reader-pagestack" id="rd-pagestack"></div>
+        <div class="reader-binding" id="rd-binding"></div>
+        <div class="canvas-page" id="rd-page"></div>
+        <div class="reader-ribbon" id="rd-ribbon"></div>
+      </div>
       <button class="reader-navzone right" id="rd-navzone-next" aria-label="Next page"></button>
       <button class="reader-chevron left" id="rd-chevron-prev"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
       <button class="reader-chevron right" id="rd-chevron-next"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
@@ -133,43 +176,54 @@ function wireChrome() {
 
 function openStyleSheet() {
   openSheet({
-    title: "Reading style",
-    html: `
-      <div class="reader-style-grid">
-        <button class="reader-style-opt${state.style === "book" ? " selected" : ""}" data-style="book">
-          <div class="rso-icon">📖</div><span>Flip Book</span>
-        </button>
-        <button class="reader-style-opt${state.style === "notepad" ? " selected" : ""}" data-style="notepad">
-          <div class="rso-icon">🗒️</div><span>Notepad</span>
-        </button>
-      </div>
-    `,
+    title: "Journal type",
+    html: `<div class="reader-style-grid">${READER_STYLES.map((s) => `
+      <button class="reader-style-opt${state.style === s.id ? " selected" : ""}" data-style="${s.id}">
+        <div class="rso-icon">${s.icon}</div><span>${s.label}</span>
+      </button>
+    `).join("")}</div>`,
   });
   document.querySelectorAll(".reader-style-opt").forEach((btn) => {
     btn.addEventListener("click", async () => {
       state.style = btn.dataset.style;
       await db.kvSet("readerStyle", state.style);
       applyOrigin();
-      setTransform(0);
+      renderBinding();
+      setPageRotation(0);
       closeSheet();
     });
   });
 }
 
 function updateChrome() {
-  const page = state.pages[state.index];
-  document.getElementById("rd-page-title").textContent = page.title || "Untitled";
-  document.getElementById("rd-page-counter").textContent = `${state.index + 1} / ${state.pages.length}`;
-  document.getElementById("rd-chevron-prev").disabled = state.index === 0;
+  const atCover = state.index === -1;
+  document.getElementById("rd-page-title").textContent = atCover ? (state.journal.title || "Untitled Journal") : (state.pages[state.index].title || "Untitled");
+  document.getElementById("rd-page-counter").textContent = atCover ? "Cover" : `${state.index + 1} / ${state.pages.length}`;
+  document.getElementById("rd-chevron-prev").disabled = state.index === -1;
   document.getElementById("rd-chevron-next").disabled = state.index === state.pages.length - 1;
-  document.getElementById("rd-navzone-prev").style.visibility = state.index === 0 ? "hidden" : "visible";
+  document.getElementById("rd-navzone-prev").style.visibility = state.index === -1 ? "hidden" : "visible";
   document.getElementById("rd-navzone-next").style.visibility = state.index === state.pages.length - 1 ? "hidden" : "visible";
+}
+
+function paintCover(pageEl) {
+  const journal = state.journal;
+  if (journal.cover?.items?.length) {
+    renderStaticPage(pageEl, journal.cover, state.urlCache);
+    return;
+  }
+  pageEl.className = "canvas-page reader-fallback-cover";
+  pageEl.innerHTML = `<div class="reader-cover-title">${escapeHtml(journal.title || "Untitled Journal")}</div>`;
+  const coverUrl = journal.coverMediaId && state.urlCache.get(journal.coverMediaId);
+  pageEl.style.background = coverUrl
+    ? `url('${coverUrl}') center/cover`
+    : (journal.coverColor || "linear-gradient(145deg,#f6c9d8,#d98fac)");
 }
 
 function paintPage() {
   const pageEl = document.getElementById("rd-page");
-  renderStaticPage(pageEl, state.pages[state.index], state.urlCache);
-  setTransform(0);
+  if (state.index === -1) paintCover(pageEl);
+  else renderStaticPage(pageEl, state.pages[state.index], state.urlCache);
+  setPageRotation(0);
   updateChrome();
 }
 
@@ -185,7 +239,7 @@ function waitForTransition(el) {
 }
 
 async function flipTo(newIndex, direction) {
-  if (!state || state.animating || newIndex < 0 || newIndex >= state.pages.length) return;
+  if (!state || state.animating || newIndex < -1 || newIndex >= state.pages.length) return;
   state.animating = true;
   playFlipSound();
 
@@ -193,18 +247,19 @@ async function flipTo(newIndex, direction) {
   const sign = direction === "next" ? -1 : 1;
 
   pageEl.style.transition = "transform 0.26s cubic-bezier(.4,0,.2,1)";
-  setTransform(sign * 100);
+  setPageRotation(sign * 100);
   await waitForTransition(pageEl);
 
-  renderStaticPage(pageEl, state.pages[newIndex], state.urlCache);
+  if (newIndex === -1) paintCover(pageEl);
+  else renderStaticPage(pageEl, state.pages[newIndex], state.urlCache);
   state.index = newIndex;
   updateChrome();
 
   pageEl.style.transition = "none";
-  setTransform(-sign * 100);
+  setPageRotation(-sign * 100);
   void pageEl.offsetWidth;
   pageEl.style.transition = "transform 0.26s cubic-bezier(.4,0,.2,1)";
-  setTransform(0);
+  setPageRotation(0);
   await waitForTransition(pageEl);
 
   state.animating = false;
