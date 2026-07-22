@@ -32,6 +32,7 @@ let el = null;
 let currentId = null;
 let currentTheme = "blossom";
 let lastTap = 0;
+let tapTimer = null;
 
 export async function mountMascot() {
   unmountMascot();
@@ -49,6 +50,8 @@ export async function mountMascot() {
 }
 
 export function unmountMascot() {
+  clearTimeout(tapTimer);
+  tapTimer = null;
   if (el) {
     el.removeEventListener("pointerup", handleTap);
     el.remove();
@@ -63,13 +66,18 @@ export function setMascotVisible(visible) {
 function handleTap() {
   const now = Date.now();
   if (now - lastTap < 350) {
+    // second tap of a double-tap: cancel the pending single-tap animation
+    // (fixed a bug where it used to fire anyway right after the picker opened)
+    clearTimeout(tapTimer);
+    tapTimer = null;
     lastTap = 0;
     openPicker();
   } else {
     lastTap = now;
-    setTimeout(() => {
-      if (Date.now() - lastTap >= 340) playAnimation();
-    }, 350);
+    tapTimer = setTimeout(() => {
+      tapTimer = null;
+      playAnimation();
+    }, 320);
   }
 }
 

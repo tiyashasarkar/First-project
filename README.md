@@ -42,20 +42,16 @@ Blossom uses **Firebase**, a free service from Google, to handle sign-in and to 
 
 ### C. Create your database
 
-8. In the left sidebar, click **Build → Firestore Database**, then **"Create database"**.
+8. In the left sidebar, use the search box and search for **Firestore Database** (Firebase's menu layout changes from time to time — the search box always finds it), then **"Create database"**.
 9. Pick any location close to you, then choose **"Start in production mode"**. Click **Create**.
 
-### D. Create photo storage
+Note: Blossom does **not** use Firebase Storage or the paid "Blaze" plan — your photos are compressed and stored directly in this free Firestore database, so there's nothing else to set up here.
 
-10. In the left sidebar, click **Build → Storage**, then **"Get started"**.
-11. Choose **production mode** again (same as before). Click **Done**.
-    - If Storage asks you to upgrade to a paid ("Blaze") plan first: this only happens on some newer Firebase projects and Google's free storage allowance still applies — you won't be charged unless your usage is enormous (far beyond personal photo journaling). If you'd rather avoid this entirely, it's fine to skip Storage setup for now; the app will still work for text/journals, photos just won't upload until Storage is enabled.
-
-### E. Lock the security rules down to just you
+### D. Lock the security rules down to just you
 
 This is the important privacy step — it makes sure only *you*, signed into *your* account, can ever read or write your data.
 
-12. Still in **Firestore Database**, click the **"Rules"** tab. Delete everything there and paste in exactly this:
+10. Still in **Firestore Database**, click the **"Rules"** tab. Delete everything there and paste in exactly this:
 
     ```
     rules_version = '2';
@@ -70,32 +66,17 @@ This is the important privacy step — it makes sure only *you*, signed into *yo
 
     Click **Publish**.
 
-13. Go to **Storage → Rules** tab. Delete everything there and paste in exactly this:
+### E. Get your config values
 
-    ```
-    rules_version = '2';
-    service firebase.storage {
-      match /b/{bucket}/o {
-        match /users/{uid}/{allPaths=**} {
-          allow read, write: if request.auth != null && request.auth.uid == uid;
-        }
-      }
-    }
-    ```
+11. Click the **⚙️ gear icon** (top-left, next to "Project Overview") → **Project settings**.
+12. Scroll down to **"Your apps"**. Click the **`</>`** (web) icon to register a new web app.
+13. Give it a nickname like `Blossom` and click **"Register app"** (skip Firebase Hosting — leave it unchecked).
+14. You'll see a code block called `firebaseConfig` with values like `apiKey`, `authDomain`, etc. Keep this page open.
 
-    Click **Publish**.
+### F. Paste your config into the app
 
-### F. Get your config values
-
-14. Click the **⚙️ gear icon** (top-left, next to "Project Overview") → **Project settings**.
-15. Scroll down to **"Your apps"**. Click the **`</>`** (web) icon to register a new web app.
-16. Give it a nickname like `Blossom` and click **"Register app"** (skip Firebase Hosting — leave it unchecked).
-17. You'll see a code block called `firebaseConfig` with values like `apiKey`, `authDomain`, etc. Keep this page open.
-
-### G. Paste your config into the app
-
-18. Open `js/firebase-config.js` in this project.
-19. Replace the placeholder values with the real ones from step 17, so it looks like:
+15. Open `js/firebase-config.js` in this project.
+16. Replace the placeholder values with the real ones from step 14, so it looks like:
     ```js
     export const firebaseConfig = {
       apiKey: "AIzaSy...",
@@ -106,7 +87,7 @@ This is the important privacy step — it makes sure only *you*, signed into *yo
       appId: "1:123456789:web:abcdef123456",
     };
     ```
-20. Save the file. (You can paste your values to me in chat instead and I'll make this edit and push it for you.)
+17. Save the file. (You can paste your values to me in chat instead and I'll make this edit and push it for you.)
 
 That's it — once this file has your real values and is deployed (see below), the sign-in screen will work and your memories will sync to your account.
 
@@ -193,7 +174,7 @@ Because Blossom is built with plain, standard web technology, it can be wrapped 
 ## Notes on how it's built (for context, not required reading)
 
 - No frameworks, no build step, no `npm install` — plain HTML/CSS/JavaScript (ES modules), including the Firebase SDK, which loads directly from Google's CDN.
-- **Firebase Authentication** handles sign-in; **Firestore** stores journals/pages (with offline caching built in, so the app still feels instant and works offline); **Firebase Storage** stores your photos. All scoped privately per account via the security rules you set up above.
+- **Firebase Authentication** handles sign-in; **Firestore** stores journals, pages, and photos (compressed and embedded as data URLs, so no Firebase Storage or paid plan is needed) — with offline caching built in, so the app still feels instant and works offline. All scoped privately per account via the security rules you set up above.
 - Memories created before this update (back when everything was local-only) are automatically offered for import into your new account the first time you sign in on the device where you made them.
 - A **service worker** caches the app shell so it opens instantly and works offline after the first visit.
 - Icons were generated procedurally (no external image assets needed) via `scripts/make-icons.js`.

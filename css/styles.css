@@ -1956,6 +1956,26 @@ a {
   align-items: center;
   justify-content: center;
   border: 2px solid var(--line);
+  overflow: visible;
+}
+
+/* A soft, continuous pulse ring signals "this is alive, tap me" without
+   touching the emoji's own transform (which the tap animations use). */
+#mascot-widget::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--dusty-rose);
+  opacity: 0;
+  pointer-events: none;
+  animation: mascotIdleRing 3.4s ease-out infinite;
+}
+
+@keyframes mascotIdleRing {
+  0% { transform: scale(0.82); opacity: 0.6; }
+  65% { transform: scale(1.32); opacity: 0; }
+  100% { transform: scale(1.32); opacity: 0; }
 }
 
 #mascot-widget:active {

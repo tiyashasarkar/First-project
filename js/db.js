@@ -1,16 +1,16 @@
-// Cloud data layer: journals/pages/media metadata live in Firestore, photo
-// bytes live in Firebase Storage — both scoped under the signed-in user's
-// own users/{uid} subtree. Every function here keeps the exact same name
-// and shape as the old local-only IndexedDB version, so none of the screen
-// files needed to change when this was swapped in.
+// Cloud data layer: journals, pages, and media all live in Firestore,
+// scoped under the signed-in user's own users/{uid} subtree. Photos are
+// compressed client-side and stored as data URLs directly in Firestore
+// documents (rather than Firebase Storage), so this works entirely on
+// Firebase's free Spark plan — no billing setup, no paid Blaze plan
+// required. Every function here keeps the exact same name and shape as
+// the original local-only IndexedDB version, so none of the screen files
+// needed to change when this was swapped in.
 
 import {
   collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import {
-  ref, uploadBytes, getDownloadURL, deleteObject, listAll,
-} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js";
-import { auth, firestore, storage } from "./firebase.js";
+import { auth, firestore } from "./firebase.js";
 
 export const idgen = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
@@ -101,27 +101,65 @@ export function pickCoverColor() {
   return palette[Math.floor(Math.random() * palette.length)];
 }
 
-function mediaStoragePath(mediaId) {
-  return `users/${uid()}/media/${mediaId}`;
+// ---- photo storage: compressed, embedded directly in Firestore ----
+// Firestore documents cap out at 1MiB, so images are resized/compressed
+// to comfortably fit (with room to spare) before being saved as a data URL.
+
+function loadImageFromBlob(blob) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+    img.src = url;
+  });
+}
+
+async function compressImageToDataURL(blob, { maxDim = 1280, maxBytes = 650000 } = {}) {
+  const img = await loadImageFromBlob(blob);
+  let width = img.naturalWidth || img.width;
+  let height = img.naturalHeight || img.height;
+  const scale = Math.min(1, maxDim / Math.max(width, height));
+  width = Math.max(1, Math.round(width * scale));
+  height = Math.max(1, Math.round(height * scale));
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+
+  let quality = 0.78;
+  let dataUrl;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    canvas.width = width;
+    canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    dataUrl = canvas.toDataURL("image/jpeg", quality);
+    const approxBytes = dataUrl.length * 0.75;
+    if (approxBytes <= maxBytes) break;
+    if (quality > 0.4) {
+      quality -= 0.15;
+    } else {
+      width = Math.round(width * 0.8);
+      height = Math.round(height * 0.8);
+    }
+  }
+  return dataUrl;
 }
 
 export async function saveMediaBlob(blob) {
   const id = idgen();
-  await uploadBytes(ref(storage, mediaStoragePath(id)), blob);
-  await setDoc(doc(colFor("media"), id), { id, createdAt: Date.now() });
+  const dataUrl = await compressImageToDataURL(blob);
+  await setDoc(doc(colFor("media"), id), { id, dataUrl, createdAt: Date.now() });
   return id;
 }
 
 export async function getMediaURL(mediaId, cache) {
   if (!mediaId) return null;
   if (cache && cache.has(mediaId)) return cache.get(mediaId);
-  try {
-    const url = await getDownloadURL(ref(storage, mediaStoragePath(mediaId)));
-    if (cache) cache.set(mediaId, url);
-    return url;
-  } catch {
-    return null;
-  }
+  const row = await get("media", mediaId);
+  const url = row?.dataUrl || null;
+  if (url && cache) cache.set(mediaId, url);
+  return url;
 }
 
 export async function savePage(page) {
@@ -174,70 +212,37 @@ export async function getAllPagesSorted() {
 }
 
 export async function exportAllData() {
-  const [journals, pages, mediaMeta] = await Promise.all([
+  const [journals, pages, media] = await Promise.all([
     getAll("journals"),
     getAll("pages"),
     getAll("media"),
   ]);
-  const mediaEncoded = [];
-  for (const m of mediaMeta) {
-    try {
-      const url = await getDownloadURL(ref(storage, mediaStoragePath(m.id)));
-      const blob = await (await fetch(url)).blob();
-      const dataUrl = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.readAsDataURL(blob);
-      });
-      mediaEncoded.push({ id: m.id, dataUrl, createdAt: m.createdAt });
-    } catch {
-      // skip any media that failed to download rather than fail the whole backup
-    }
-  }
   return {
     app: "blossom-journal",
     exportedAt: new Date().toISOString(),
     version: 1,
     journals,
     pages,
-    media: mediaEncoded,
+    media: media.map((m) => ({ id: m.id, dataUrl: m.dataUrl, createdAt: m.createdAt })),
   };
 }
 
 export async function importAllData(data) {
   if (!data || data.app !== "blossom-journal") throw new Error("This doesn't look like a Blossom backup file.");
   for (const m of data.media || []) {
-    const blob = await (await fetch(m.dataUrl)).blob();
-    await uploadBytes(ref(storage, mediaStoragePath(m.id)), blob);
-    await setDoc(doc(colFor("media"), m.id), { id: m.id, createdAt: m.createdAt || Date.now() });
+    await put("media", { id: m.id, dataUrl: m.dataUrl, createdAt: m.createdAt || Date.now() });
   }
   for (const j of data.journals || []) await put("journals", j);
   for (const p of data.pages || []) await put("pages", p);
 }
 
 export async function wipeAllData() {
-  const [journals, pages, mediaMeta] = await Promise.all([
+  const [journals, pages, media] = await Promise.all([
     getAll("journals"),
     getAll("pages"),
     getAll("media"),
   ]);
   await Promise.all(journals.map((j) => del("journals", j.id)));
   await Promise.all(pages.map((p) => del("pages", p.id)));
-  await Promise.all(
-    mediaMeta.map(async (m) => {
-      await del("media", m.id);
-      try {
-        await deleteObject(ref(storage, mediaStoragePath(m.id)));
-      } catch {
-        // already gone / never uploaded — fine
-      }
-    })
-  );
-  // catch any storage objects not tracked in Firestore for some reason
-  try {
-    const folder = await listAll(ref(storage, `users/${uid()}/media`));
-    await Promise.all(folder.items.map((item) => deleteObject(item).catch(() => {})));
-  } catch {
-    // no media folder yet — fine
-  }
+  await Promise.all(media.map((m) => del("media", m.id)));
 }

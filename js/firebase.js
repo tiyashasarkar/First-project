@@ -1,23 +1,24 @@
-// Initializes your Blossom app's connection to Firebase (Auth, Firestore,
-// Storage) using the plain browser-native ES module CDN build — no npm
-// install, no bundler, nothing to build. Every screen imports auth/db/
-// storage from here.
+// Initializes your Blossom app's connection to Firebase (Auth + Firestore)
+// using the plain browser-native ES module CDN build — no npm install, no
+// bundler, nothing to build. Every screen imports auth/db from here.
+//
+// Note: there's deliberately no Firebase Storage here. Photos are
+// compressed and stored directly in Firestore (see db.js) so the whole
+// app runs on Firebase's free Spark plan with no billing setup required.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import { getFirestore, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-storage.js";
 import { firebaseConfig, isFirebaseConfigured } from "./firebase-config.js";
 
 export { isFirebaseConfigured };
 
-let app, auth, firestore, storage;
+let app, auth, firestore;
 
 if (isFirebaseConfigured) {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   firestore = getFirestore(app);
-  storage = getStorage(app);
 
   // Lets journals/pages keep working offline (and feel instant) by caching
   // Firestore reads/writes on-device, syncing automatically once back online.
@@ -27,4 +28,4 @@ if (isFirebaseConfigured) {
   });
 }
 
-export { auth, firestore, storage };
+export { auth, firestore };
