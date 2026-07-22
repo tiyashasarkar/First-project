@@ -1,18 +1,20 @@
 // A small floating, tappable mascot that matches the current theme —
 // tap for a fun animation, double-tap to pick a different one.
+//
+// Glam Mode is special-cased: instead of the single mascot, it mounts the
+// richer glam-stickers.js dock (a small cluster of themed interactive
+// stickers). Blossom and Midnight keep this simple single-mascot behavior
+// unchanged.
 import { getTheme } from "./theme.js";
 import * as db from "./db.js";
 import { openSheet, closeSheet } from "./ui.js";
+import { mountGlamDock, unmountGlamDock, setGlamDockVisible } from "./glam-stickers.js";
 
 const MASCOTS = {
   butterfly: { emoji: "🦋", anim: "flutter", label: "Butterfly" },
   flower: { emoji: "🌷", anim: "spin", label: "Tulip" },
   "bow-b": { emoji: "🎀", anim: "spin", label: "Bow" },
   sparkle: { emoji: "✨", anim: "pulse", label: "Sparkle" },
-  "car-glam": { emoji: "🚘", anim: "zoom", label: "Convertible" },
-  lipstick: { emoji: "💄", anim: "heart", label: "Lipstick" },
-  purse: { emoji: "👛", anim: "pulse", label: "Purse" },
-  "bow-g": { emoji: "🎀", anim: "spin", label: "Bow" },
   bat: { emoji: "🦇", anim: "flutter", label: "Bat" },
   "car-midnight": { emoji: "🚗", anim: "zoom", label: "Sports car" },
   moon: { emoji: "🌙", anim: "pulse", label: "Moon" },
@@ -21,7 +23,6 @@ const MASCOTS = {
 
 const SETS = {
   blossom: { default: "butterfly", options: ["butterfly", "flower", "bow-b", "sparkle"] },
-  glam: { default: "car-glam", options: ["car-glam", "lipstick", "purse", "bow-g", "sparkle"] },
   midnight: { default: "bat", options: ["bat", "car-midnight", "moon", "bolt"] },
 };
 
@@ -37,6 +38,12 @@ let tapTimer = null;
 export async function mountMascot() {
   unmountMascot();
   currentTheme = (await getTheme()) || "blossom";
+
+  if (currentTheme === "glam") {
+    mountGlamDock();
+    return;
+  }
+
   const set = SETS[currentTheme] || SETS.blossom;
   currentId = (await db.kvGet(`mascot_${currentTheme}`, null)) || set.default;
 
@@ -50,6 +57,7 @@ export async function mountMascot() {
 }
 
 export function unmountMascot() {
+  unmountGlamDock();
   clearTimeout(tapTimer);
   tapTimer = null;
   if (el) {
@@ -60,6 +68,7 @@ export function unmountMascot() {
 }
 
 export function setMascotVisible(visible) {
+  setGlamDockVisible(visible);
   if (el) el.style.display = visible ? "flex" : "none";
 }
 
