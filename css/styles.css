@@ -3,7 +3,7 @@
    Design system: tokens, layout, components
    ========================================================================== */
 
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Quicksand:wght@400;500;600;700&family=Caveat:wght@500;600;700&family=Parisienne&family=Indie+Flower&family=Homemade+Apple&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Quicksand:wght@400;500;600;700&family=Caveat:wght@500;600;700&family=Parisienne&family=Indie+Flower&family=Homemade+Apple&family=Shadows+Into+Light&family=Kalam&family=Patrick+Hand&family=Gochi+Hand&family=Reenie+Beanie&family=Nanum+Pen+Script&family=Just+Another+Hand&family=Coming+Soon&family=Architects+Daughter&family=Amatic+SC&family=Permanent+Marker&family=Rock+Salt&family=Waiting+for+the+Sunrise&family=Crafty+Girls&family=Caveat+Brush&family=Great+Vibes&family=Pacifico&family=Sacramento&family=Alex+Brush&family=Allura&family=Tangerine&family=Yellowtail&family=Satisfy&family=Cookie&family=Marck+Script&family=Mrs+Saint+Delafield&family=Meddon&family=Playball&family=Italianno&family=Petit+Formal+Script&family=Playfair+Display&family=Cormorant+Garamond&family=Libre+Baskerville&family=EB+Garamond&family=Cinzel&family=Marcellus&family=Prata&family=Bodoni+Moda&family=Cormorant&family=Fredoka&family=Baloo+2&family=Chewy&family=Bungee&family=Lilita+One&display=swap");
 
 :root {
   /* palette */
@@ -1222,11 +1222,23 @@ a {
   background: var(--warm-white);
   border-left: 1px solid var(--line);
   padding: 18px 18px calc(var(--safe-bottom) + 18px);
+  transition: transform 0.3s cubic-bezier(0.65, 0, 0.35, 1), margin-right 0.3s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.editor-sidebar.collapsed {
+  transform: translateX(100%);
+  margin-right: -300px;
 }
 
 .editor-sidebar h3 {
-  font-size: 15px;
   margin-bottom: 12px;
+}
+
+.curate-heading {
+  font-family: var(--font-script);
+  font-weight: 400;
+  font-size: 26px;
+  color: var(--mauve-dark);
 }
 
 @media (min-width: 860px) {
@@ -1288,26 +1300,32 @@ a {
   border-radius: 6px;
 }
 
+/* Textured page backgrounds read color from --page-base/--page-line(-soft),
+   set inline per page based on the chosen palette (js: applyPageBackground).
+   5 textures x 10 palettes = 50 real combinations. */
 .canvas-page.bg-dot {
-  background-image: radial-gradient(circle, rgba(217, 143, 172, 0.16) 1px, transparent 1px);
+  background-color: var(--page-base, var(--warm-white));
+  background-image: radial-gradient(circle, var(--page-line-soft, rgba(217, 143, 172, 0.16)) 1px, transparent 1px);
   background-size: 14px 14px;
 }
 
 .canvas-page.bg-ruled {
+  background-color: var(--page-base, var(--warm-white));
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
     transparent 27px,
-    rgba(217, 143, 172, 0.32) 27px,
-    rgba(217, 143, 172, 0.32) 28px
+    var(--page-line, rgba(217, 143, 172, 0.32)) 27px,
+    var(--page-line, rgba(217, 143, 172, 0.32)) 28px
   );
   background-position: 0 60px;
 }
 
 .canvas-page.bg-grid {
+  background-color: var(--page-base, var(--warm-white));
   background-image:
-    repeating-linear-gradient(to bottom, transparent 0, transparent 19px, rgba(217, 143, 172, 0.22) 19px, rgba(217, 143, 172, 0.22) 20px),
-    repeating-linear-gradient(to right, transparent 0, transparent 19px, rgba(217, 143, 172, 0.22) 19px, rgba(217, 143, 172, 0.22) 20px);
+    repeating-linear-gradient(to bottom, transparent 0, transparent 19px, var(--page-line, rgba(217, 143, 172, 0.22)) 19px, var(--page-line, rgba(217, 143, 172, 0.22)) 20px),
+    repeating-linear-gradient(to right, transparent 0, transparent 19px, var(--page-line, rgba(217, 143, 172, 0.22)) 19px, var(--page-line, rgba(217, 143, 172, 0.22)) 20px);
 }
 
 .canvas-page.bg-blank {
@@ -1315,20 +1333,20 @@ a {
 }
 
 .canvas-page.bg-whimsical {
-  background-color: #fff9f7;
+  background-color: var(--page-base, #fff9f7);
   background-image:
-    radial-gradient(circle, rgba(240, 189, 130, 0.3) 1.5px, transparent 1.6px),
-    repeating-linear-gradient(-6deg, transparent 0 26px, rgba(217, 143, 172, 0.28) 26px 27px);
+    radial-gradient(circle, var(--page-line, rgba(240, 189, 130, 0.3)) 1.5px, transparent 1.6px),
+    repeating-linear-gradient(-6deg, transparent 0 26px, var(--page-line-soft, rgba(217, 143, 172, 0.28)) 26px 27px);
   background-size: 16px 16px, 100% 100%;
 }
 
 .canvas-page.bg-vintage {
-  background-color: #f3e6d0;
+  background-color: var(--page-base, #f3e6d0);
   background-image:
-    radial-gradient(circle at 20% 25%, rgba(180, 140, 90, 0.16) 0, transparent 40%),
-    radial-gradient(circle at 80% 75%, rgba(180, 140, 90, 0.14) 0, transparent 45%),
-    repeating-radial-gradient(circle, rgba(120, 90, 50, 0.06) 0, rgba(120, 90, 50, 0.06) 1px, transparent 1px, transparent 3px);
-  box-shadow: inset 0 0 50px rgba(120, 90, 50, 0.22);
+    radial-gradient(circle at 20% 25%, var(--page-line-soft, rgba(180, 140, 90, 0.16)) 0, transparent 40%),
+    radial-gradient(circle at 80% 75%, var(--page-line-soft, rgba(180, 140, 90, 0.14)) 0, transparent 45%),
+    repeating-radial-gradient(circle, var(--page-line-soft, rgba(120, 90, 50, 0.06)) 0, var(--page-line-soft, rgba(120, 90, 50, 0.06)) 1px, transparent 1px, transparent 3px);
+  box-shadow: inset 0 0 50px var(--page-line-soft, rgba(120, 90, 50, 0.22));
 }
 
 .canvas-page.bg-custom {
@@ -1559,6 +1577,25 @@ a {
   flex-shrink: 0;
 }
 
+.recent-color-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.recent-color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  flex-shrink: 0;
+}
+
+.recent-color-swatch:active {
+  transform: scale(0.88);
+}
+
 .c-item.text .c-body {
   padding: 6px;
   white-space: pre-wrap;
@@ -1589,24 +1626,28 @@ a {
   touch-action: none;
 }
 
+/* Calendar colors come from --cal-bg/--cal-accent/--cal-text, set inline
+   per item based on the chosen palette (js: applyCalendarPalette). Each
+   cal-style-X block below only controls STRUCTURE (font, border style,
+   today-cell shape) — layout x palette = 50 real, distinct combinations. */
 .c-item.calendar .c-body {
   width: 100%;
   height: 100%;
-  background: var(--warm-white);
+  background: var(--cal-bg, var(--warm-white));
   border-radius: 14px;
   box-shadow: 0 6px 16px -4px rgba(74, 59, 66, 0.25);
   padding: 0.9em 0.8em 0.7em;
   box-sizing: border-box;
   overflow: hidden;
   touch-action: none;
-  border: 2px solid var(--blush);
+  border: 2px solid var(--cal-accent, var(--blush));
 }
 
 .cal-head {
   text-align: center;
   font-family: var(--font-display);
   font-weight: 600;
-  color: var(--mauve-dark);
+  color: var(--cal-accent, var(--mauve-dark));
   font-size: 1em;
   line-height: 1.15;
   margin-bottom: 0.3em;
@@ -1614,7 +1655,7 @@ a {
 
 .cal-year {
   font-size: 0.7em;
-  color: var(--dusty-rose);
+  color: var(--cal-accent, var(--dusty-rose));
   font-weight: 600;
   letter-spacing: 0.05em;
 }
@@ -1625,7 +1666,7 @@ a {
   text-align: center;
   font-size: 0.55em;
   font-weight: 700;
-  color: var(--dusty-rose);
+  color: var(--cal-accent, var(--dusty-rose));
   margin-bottom: 0.2em;
 }
 
@@ -1642,7 +1683,7 @@ a {
   align-items: center;
   justify-content: center;
   font-size: 0.6em;
-  color: var(--ink);
+  color: var(--cal-text, var(--ink));
   border-radius: 50%;
 }
 
@@ -1651,18 +1692,17 @@ a {
 }
 
 .cal-cell.today {
-  background: var(--grad-fab);
+  background: var(--cal-accent, var(--mauve));
   color: #fff;
   font-weight: 700;
 }
 
 /* ---------------------------------------------------------------------- */
-/* Calendar aesthetic style variants                                      */
+/* Calendar layouts — structure only, color comes from the palette        */
 /* ---------------------------------------------------------------------- */
 
 .c-item.calendar.cal-style-handwritten .c-body {
-  background: var(--warm-white);
-  border: 2px dashed var(--dusty-rose);
+  border-style: dashed;
   border-radius: 10px;
 }
 .c-item.calendar.cal-style-handwritten .cal-head,
@@ -1672,55 +1712,42 @@ a {
 .c-item.calendar.cal-style-handwritten .cal-head { font-size: 1.2em; }
 .c-item.calendar.cal-style-handwritten .cal-cell.today {
   background: none;
-  border: 2px solid var(--dusty-rose);
-  color: var(--dusty-rose);
+  border: 2px solid var(--cal-accent, var(--dusty-rose));
+  color: var(--cal-accent, var(--dusty-rose));
   transform: rotate(-6deg);
 }
 
 .c-item.calendar.cal-style-whimsical .c-body {
-  background: linear-gradient(160deg, #fff0f8, #ffe9d6 60%, #eaf6ff);
-  border: 2px dotted var(--gold);
+  border-style: dotted;
   border-radius: 20px;
 }
-.c-item.calendar.cal-style-whimsical .cal-head { font-family: var(--font-hand2); color: var(--mauve); }
-.c-item.calendar.cal-style-whimsical .cal-year { color: var(--mauve); }
+.c-item.calendar.cal-style-whimsical .cal-head { font-family: var(--font-hand2); }
 .c-item.calendar.cal-style-whimsical .cal-cell { font-family: var(--font-hand3); }
 .c-item.calendar.cal-style-whimsical .cal-cell.today {
-  background: var(--gold);
-  color: #fff;
   border-radius: 0;
   clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
 }
 
 .c-item.calendar.cal-style-oldmoney .c-body {
-  background: #f7f1e3;
-  border: 1px solid #b8975a;
   border-radius: 4px;
-  box-shadow: inset 0 0 0 4px #fdfbf4;
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.55);
 }
 .c-item.calendar.cal-style-oldmoney .cal-head,
 .c-item.calendar.cal-style-oldmoney .cal-cell {
   font-family: var(--font-display);
-  color: #3a3327;
 }
-.c-item.calendar.cal-style-oldmoney .cal-year,
-.c-item.calendar.cal-style-oldmoney .cal-dow { color: #8a6a2f; }
 .c-item.calendar.cal-style-oldmoney .cal-cell.today {
   background: none;
-  border: 1px solid #b8975a;
-  color: #6e4f1c;
+  border: 1px solid var(--cal-accent, #b8975a);
+  color: var(--cal-accent, #6e4f1c);
   font-weight: 700;
 }
 
 .c-item.calendar.cal-style-sweetheart .c-body {
-  background: linear-gradient(160deg, #fff5fa, #ffd9ea);
-  border: 2px solid #ffb8d9;
   border-radius: 24px;
 }
-.c-item.calendar.cal-style-sweetheart .cal-head { font-family: var(--font-script); font-size: 1.35em; color: #d6398f; }
-.c-item.calendar.cal-style-sweetheart .cal-year { color: #d6398f; }
+.c-item.calendar.cal-style-sweetheart .cal-head { font-family: var(--font-script); font-size: 1.35em; }
 .c-item.calendar.cal-style-sweetheart .cal-cell.today {
-  background: #ff6fc0;
   color: #fff;
   border-radius: 0;
   clip-path: url(#blossom-heart-clip);
@@ -1793,6 +1820,24 @@ a {
 .cs-swatch.cal-style-oldmoney .cs-head { font-family: var(--font-display); color: #3a3327; }
 .cs-swatch.cal-style-sweetheart .cs-preview { background: linear-gradient(160deg, #fff5fa, #ffd9ea); border-color: #ffb8d9; }
 .cs-swatch.cal-style-sweetheart .cs-head { font-family: var(--font-script); font-size: 17px; color: #d6398f; }
+
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  padding: 4px 0 2px;
+}
+
+.palette-swatch {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+}
+
+.palette-swatch.selected {
+  outline: 3px solid var(--mauve-dark);
+  outline-offset: 2px;
+}
 
 .signature-grid {
   display: grid;
@@ -1995,19 +2040,39 @@ a {
 }
 
 .font-picker {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(66px, 1fr));
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
   padding-bottom: 6px;
 }
 
 .font-picker button {
-  flex: 0 0 auto;
-  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 4px;
   border-radius: var(--radius-sm);
   background: var(--cream);
   border: 1.5px solid var(--line);
-  font-size: 18px;
+}
+
+.font-picker button .fp-glyph {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.font-picker button .fp-label {
+  font-family: var(--font-body) !important;
+  font-size: 8.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .font-picker button.selected {
@@ -2650,4 +2715,136 @@ html.theme-transitioning .sheet {
   .memory-card:hover {
     transform: translateY(-2px);
   }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Flip-book / notepad reader                                             */
+/* ---------------------------------------------------------------------- */
+
+#screen-reader {
+  background: var(--cream);
+}
+
+.reader-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: calc(var(--safe-top) + 10px) 14px 10px;
+  background: var(--warm-white);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.reader-title {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.reader-title #rd-page-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--mauve-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reader-title #rd-page-counter {
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+.reader-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1400px;
+  background: repeating-linear-gradient(45deg, var(--editor-stripe-a), var(--editor-stripe-a) 12px, var(--editor-stripe-b) 12px, var(--editor-stripe-b) 24px);
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+}
+
+#rd-page {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  box-shadow: 0 18px 40px -12px rgba(111, 74, 94, 0.4);
+}
+
+.reader-navzone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30%;
+  z-index: 4;
+}
+
+.reader-navzone.left { left: 0; }
+.reader-navzone.right { right: 0; }
+
+.reader-chevron {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.reader-chevron svg {
+  width: 20px;
+  height: 20px;
+  stroke: var(--mauve-dark);
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.reader-chevron.left { left: 10px; }
+.reader-chevron.right { right: 10px; }
+
+.reader-chevron:disabled {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.reader-style-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 4px 0 14px;
+}
+
+.reader-style-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 22px 10px;
+  border-radius: var(--radius-md);
+  background: var(--cream);
+  border: 2px solid var(--line);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.reader-style-opt.selected {
+  border-color: var(--dusty-rose);
+  background: var(--blush);
+}
+
+.rso-icon {
+  font-size: 30px;
 }

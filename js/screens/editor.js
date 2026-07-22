@@ -3,6 +3,7 @@ import { openSheet, closeSheet, showToast, escapeHtml, MOODS } from "../ui.js";
 import { setMascotVisible } from "../mascot.js";
 import { VIBES } from "../vibes.js";
 import { playPageAudio, stopPageAudio, togglePageAudio, isCurrentlyPlaying } from "../music.js";
+import { openCreateFlow } from "./create.js";
 
 const PAGE_W = 380;
 const PAGE_H = 507;
@@ -28,34 +29,203 @@ const SIGNATURE_STICKERS = [
   { id: "butterfly", aspect: 1.2, svg: `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg"><path d="M58 50 C40 10 5 15 8 40 C10 60 40 58 58 50Z" fill="#eab6ce"/><path d="M62 50 C80 10 115 15 112 40 C110 60 80 58 62 50Z" fill="#f2c6d9"/><path d="M58 52 C42 80 12 82 10 65 C8 55 35 55 58 52Z" fill="#d98fac"/><path d="M62 52 C78 80 108 82 110 65 C112 55 85 55 62 52Z" fill="#e0a3c0"/><rect x="57" y="45" width="6" height="34" rx="3" fill="#9c6b84"/></svg>` },
   { id: "cherries", aspect: 90 / 100, svg: `<svg viewBox="0 0 90 100" xmlns="http://www.w3.org/2000/svg"><path d="M45 8 C42 30 42 45 42 45 M45 8 C55 25 62 35 62 35" stroke="#8fa876" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="30" cy="66" r="24" fill="#d94f6a"/><circle cx="62" cy="66" r="24" fill="#e8688f"/><ellipse cx="22" cy="56" rx="6" ry="4" fill="#f2a9c4" opacity=".7"/></svg>` },
 ];
-const TAPES = [
-  "linear-gradient(180deg,#fbdce6,#f6c9d8)",
-  "repeating-linear-gradient(45deg,#fff8f0,#fff8f0 6px,#f3e6d8 6px,#f3e6d8 12px)",
-  "linear-gradient(180deg,#e2a8bd,#d98fac)",
-  "repeating-linear-gradient(45deg,#f0d9c8,#f0d9c8 5px,#d9b79c 5px,#d9b79c 10px)",
-  "radial-gradient(circle,#c9a4b6 2px,transparent 2.3px) 0 0/11px 11px,#f3d9e2",
-  "repeating-linear-gradient(90deg,#f6e2c2,#f6e2c2 8px,#eec98a 8px,#eec98a 10px)",
-  "linear-gradient(180deg,#fde3d3,#f7c9a8)",
-  "repeating-linear-gradient(135deg,#ffffff,#ffffff 4px,#fbe4ec 4px,#fbe4ec 8px)",
+
+// 42 more signature stickers generated from parametric shape functions —
+// keeps the hand-illustrated 8 above as the flagship set, and rounds out
+// to ~50 with real shape/color variety instead of one-off filler.
+function makeFlowerSVG(petals, petalColor, centerColor) {
+  const cx = 50, cy = 50, d = 20, pr = 16;
+  let circles = "";
+  for (let i = 0; i < petals; i++) {
+    const angle = (Math.PI * 2 * i) / petals - Math.PI / 2;
+    circles += `<circle cx="${(cx + d * Math.cos(angle)).toFixed(1)}" cy="${(cy + d * Math.sin(angle)).toFixed(1)}" r="${pr}" fill="${petalColor}"/>`;
+  }
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${circles}<circle cx="${cx}" cy="${cy}" r="11" fill="${centerColor}"/></svg>`;
+}
+function makeStarSVG(points, color) {
+  const cx = 50, cy = 50, outerR = 46, innerR = 20;
+  let d = "";
+  for (let i = 0; i < points * 2; i++) {
+    const r = i % 2 === 0 ? outerR : innerR;
+    const angle = (Math.PI * i) / points - Math.PI / 2;
+    d += `${i === 0 ? "M" : "L"}${(cx + r * Math.cos(angle)).toFixed(1)},${(cy + r * Math.sin(angle)).toFixed(1)} `;
+  }
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="${d}Z" fill="${color}"/></svg>`;
+}
+function makeHeartSVG(color, withSparkle) {
+  const sparkle = withSparkle ? `<path d="M78 15 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 Z" fill="#fff8f3"/>` : "";
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 85 C20 65 5 45 5 28 C5 12 18 3 32 3 C42 3 50 10 50 20 C50 10 58 3 68 3 C82 3 95 12 95 28 C95 45 80 65 50 85 Z" fill="${color}"/>${sparkle}</svg>`;
+}
+function makeConfettiSVG(colors) {
+  const positions = [[20, 25], [55, 15], [80, 35], [30, 55], [65, 60], [45, 80], [15, 70], [85, 75]];
+  const circles = positions.map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="${7 + (i % 3) * 2}" fill="${colors[i % colors.length]}"/>`).join("");
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${circles}</svg>`;
+}
+function makeBowSVG(color1, color2, knot) {
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg"><path d="M50 30 L10 8 Q2 8 2 20 L2 40 Q2 52 10 52 Z" fill="${color1}"/><path d="M50 30 L90 8 Q98 8 98 20 L98 40 Q98 52 90 52 Z" fill="${color2}"/><circle cx="50" cy="30" r="9" fill="${knot}"/></svg>`;
+}
+function makeRibbonSVG(fill, stroke) {
+  return `<svg viewBox="0 0 140 50" xmlns="http://www.w3.org/2000/svg"><polygon points="10,5 130,5 140,25 130,45 10,45 20,25" fill="${fill}" stroke="${stroke}" stroke-width="2"/></svg>`;
+}
+
+const FLOWER_VARIANTS = [
+  [5, "#fbdce6", "#f0bd82"], [6, "#f6c9d8", "#e8688f"], [7, "#eab6ce", "#c9698f"], [8, "#ffd9ea", "#ff6fc0"],
+  [5, "#e3ecf6", "#a9c6e8"], [6, "#e8f0e3", "#8fa876"], [7, "#fff0d9", "#eec98a"], [8, "#f6e3f0", "#d9a9d1"],
+  [5, "#fde3d3", "#f7c9a8"], [6, "#f0d9c8", "#d9b79c"],
 ];
+const STAR_VARIANTS = [
+  [4, "#f0bd82"], [5, "#e8688f"], [6, "#9c6b84"], [4, "#a9c6e8"],
+  [5, "#d9a9d1"], [6, "#eec98a"], [5, "#ff6fc0"], [4, "#8fa876"],
+];
+const HEART_VARIANTS = [
+  ["#e8688f", true], ["#d98fac", false], ["#ff6fc0", true], ["#c9698f", false],
+  ["#f0bd82", true], ["#a9c6e8", false], ["#d9a9d1", true], ["#bcd9ac", false],
+];
+const CONFETTI_VARIANTS = [
+  ["#f6c9d8", "#f0bd82", "#e8688f"], ["#a9c6e8", "#d9a9d1", "#bcd9ac"], ["#ffd9ea", "#ff6fc0", "#f7c9a8"],
+  ["#eec98a", "#d9b79c", "#f3d9e2"], ["#c9698f", "#9c6b84", "#eab6ce"], ["#8fa876", "#e8f0e3", "#f0bd82"],
+];
+const BOW_VARIANTS = [
+  ["#f0bd82", "#eec98a", "#c9885a"], ["#a9c6e8", "#c6dcf0", "#6f95b8"], ["#d9a9d1", "#ecc9e6", "#a9679c"],
+  ["#bcd9ac", "#d9ecc9", "#7a9c68"], ["#ff6fc0", "#ffb8d9", "#d6398f"],
+];
+const RIBBON_VARIANTS = [
+  ["#a9c6e8", "#6f95b8"], ["#eec98a", "#c9885a"], ["#d9a9d1", "#a9679c"], ["#bcd9ac", "#7a9c68"], ["#ffb8d9", "#d6398f"],
+];
+
+FLOWER_VARIANTS.forEach(([petals, petalColor, centerColor], i) =>
+  SIGNATURE_STICKERS.push({ id: `flower-${i}`, aspect: 1, svg: makeFlowerSVG(petals, petalColor, centerColor) }));
+STAR_VARIANTS.forEach(([points, color], i) =>
+  SIGNATURE_STICKERS.push({ id: `star-${i}`, aspect: 1, svg: makeStarSVG(points, color) }));
+HEART_VARIANTS.forEach(([color, sparkle], i) =>
+  SIGNATURE_STICKERS.push({ id: `heart-${i}`, aspect: 1, svg: makeHeartSVG(color, sparkle) }));
+CONFETTI_VARIANTS.forEach((colors, i) =>
+  SIGNATURE_STICKERS.push({ id: `confetti-${i}`, aspect: 1, svg: makeConfettiSVG(colors) }));
+BOW_VARIANTS.forEach(([c1, c2, knot], i) =>
+  SIGNATURE_STICKERS.push({ id: `bow-${i}`, aspect: 100 / 60, svg: makeBowSVG(c1, c2, knot) }));
+RIBBON_VARIANTS.forEach(([fill, stroke], i) =>
+  SIGNATURE_STICKERS.push({ id: `ribbon-${i}`, aspect: 140 / 50, svg: makeRibbonSVG(fill, stroke) }));
+// 50 washi tapes: 10 curated color palettes x 5 pattern styles, generated
+// rather than hand-written one-by-one, so the variety stays real instead
+// of near-duplicate filler.
+const TAPE_PALETTES = [
+  ["#fbdce6", "#f6c9d8"], // blush pink
+  ["#fff8f0", "#f3e6d8"], // cream
+  ["#e2a8bd", "#d98fac"], // rose
+  ["#f0d9c8", "#d9b79c"], // tan
+  ["#f6e2c2", "#eec98a"], // gold
+  ["#fde3d3", "#f7c9a8"], // peach
+  ["#e8f0e3", "#bcd9ac"], // sage green
+  ["#e3ecf6", "#a9c6e8"], // sky blue
+  ["#f6e3f0", "#d9a9d1"], // lilac
+  ["#fff0d9", "#f0c987"], // butter yellow
+];
+const TAPE_PATTERNS = [
+  ([a, b]) => `linear-gradient(180deg,${a},${b})`,
+  ([a, b]) => `repeating-linear-gradient(45deg,${a},${a} 6px,${b} 6px,${b} 12px)`,
+  ([a, b]) => `radial-gradient(circle,${b} 2px,transparent 2.3px) 0 0/11px 11px,${a}`,
+  ([a, b]) => `repeating-linear-gradient(90deg,${a},${a} 8px,${b} 8px,${b} 10px)`,
+  ([a, b]) => `repeating-linear-gradient(135deg,${a},${a} 4px,${b} 4px,${b} 8px)`,
+];
+const TAPES = TAPE_PALETTES.flatMap((palette) => TAPE_PATTERNS.map((fn) => fn(palette)));
+// 50 real, distinct Google Fonts for journal text — the original 6 keep
+// their ids unchanged so pages saved before this batch still render the
+// same font. The other 44 are new choices spanning handwritten, script,
+// elegant serif, and playful display styles.
 const FONTS = [
-  { id: "display", label: "Aa", family: "var(--font-display)", size: 20 },
-  { id: "hand", label: "Aa", family: "var(--font-hand)", size: 26 },
-  { id: "hand2", label: "Aa", family: "var(--font-hand2)", size: 22 },
-  { id: "hand3", label: "Aa", family: "var(--font-hand3)", size: 24 },
-  { id: "script", label: "Aa", family: "var(--font-script)", size: 30 },
-  { id: "body", label: "Aa", family: "var(--font-body)", size: 16 },
+  { id: "display", name: "Fraunces", family: "var(--font-display)", size: 20 },
+  { id: "hand", name: "Caveat", family: "var(--font-hand)", size: 26 },
+  { id: "hand2", name: "Indie Flower", family: "var(--font-hand2)", size: 22 },
+  { id: "hand3", name: "Homemade Apple", family: "var(--font-hand3)", size: 24 },
+  { id: "script", name: "Parisienne", family: "var(--font-script)", size: 30 },
+  { id: "body", name: "Quicksand", family: "var(--font-body)", size: 16 },
+  // Handwritten / casual
+  { id: "shadows", name: "Shadows Into Light", family: "'Shadows Into Light', cursive", size: 24 },
+  { id: "kalam", name: "Kalam", family: "'Kalam', cursive", size: 22 },
+  { id: "patrick", name: "Patrick Hand", family: "'Patrick Hand', cursive", size: 20 },
+  { id: "gochi", name: "Gochi Hand", family: "'Gochi Hand', cursive", size: 24 },
+  { id: "reenie", name: "Reenie Beanie", family: "'Reenie Beanie', cursive", size: 28 },
+  { id: "nanumpen", name: "Nanum Pen Script", family: "'Nanum Pen Script', cursive", size: 26 },
+  { id: "justhand", name: "Just Another Hand", family: "'Just Another Hand', cursive", size: 26 },
+  { id: "comingsoon", name: "Coming Soon", family: "'Coming Soon', cursive", size: 20 },
+  { id: "architects", name: "Architects Daughter", family: "'Architects Daughter', cursive", size: 20 },
+  { id: "amatic", name: "Amatic SC", family: "'Amatic SC', cursive", size: 28 },
+  { id: "marker", name: "Permanent Marker", family: "'Permanent Marker', cursive", size: 20 },
+  { id: "rocksalt", name: "Rock Salt", family: "'Rock Salt', cursive", size: 18 },
+  { id: "sunrise", name: "Waiting for Sunrise", family: "'Waiting for the Sunrise', cursive", size: 22 },
+  { id: "crafty", name: "Crafty Girls", family: "'Crafty Girls', cursive", size: 22 },
+  { id: "caveatbrush", name: "Caveat Brush", family: "'Caveat Brush', cursive", size: 24 },
+  // Script / elegant
+  { id: "greatvibes", name: "Great Vibes", family: "'Great Vibes', cursive", size: 28 },
+  { id: "pacifico", name: "Pacifico", family: "'Pacifico', cursive", size: 22 },
+  { id: "sacramento", name: "Sacramento", family: "'Sacramento', cursive", size: 26 },
+  { id: "alexbrush", name: "Alex Brush", family: "'Alex Brush', cursive", size: 26 },
+  { id: "allura", name: "Allura", family: "'Allura', cursive", size: 28 },
+  { id: "tangerine", name: "Tangerine", family: "'Tangerine', cursive", size: 32 },
+  { id: "yellowtail", name: "Yellowtail", family: "'Yellowtail', cursive", size: 24 },
+  { id: "satisfy", name: "Satisfy", family: "'Satisfy', cursive", size: 22 },
+  { id: "cookie", name: "Cookie", family: "'Cookie', cursive", size: 24 },
+  { id: "marckscript", name: "Marck Script", family: "'Marck Script', cursive", size: 22 },
+  { id: "delafield", name: "Mrs Saint Delafield", family: "'Mrs Saint Delafield', cursive", size: 26 },
+  { id: "meddon", name: "Meddon", family: "'Meddon', cursive", size: 24 },
+  { id: "playball", name: "Playball", family: "'Playball', cursive", size: 24 },
+  { id: "italianno", name: "Italianno", family: "'Italianno', cursive", size: 30 },
+  { id: "petitformal", name: "Petit Formal Script", family: "'Petit Formal Script', cursive", size: 22 },
+  // Elegant serif / "old money"
+  { id: "playfair", name: "Playfair Display", family: "'Playfair Display', serif", size: 20 },
+  { id: "cormorantgaramond", name: "Cormorant Garamond", family: "'Cormorant Garamond', serif", size: 22 },
+  { id: "librebaskerville", name: "Libre Baskerville", family: "'Libre Baskerville', serif", size: 18 },
+  { id: "ebgaramond", name: "EB Garamond", family: "'EB Garamond', serif", size: 18 },
+  { id: "cinzel", name: "Cinzel", family: "'Cinzel', serif", size: 18 },
+  { id: "marcellus", name: "Marcellus", family: "'Marcellus', serif", size: 18 },
+  { id: "prata", name: "Prata", family: "'Prata', serif", size: 18 },
+  { id: "bodonimoda", name: "Bodoni Moda", family: "'Bodoni Moda', serif", size: 18 },
+  { id: "cormorant", name: "Cormorant", family: "'Cormorant', serif", size: 20 },
+  // Playful display
+  { id: "fredoka", name: "Fredoka", family: "'Fredoka', sans-serif", size: 18 },
+  { id: "baloo2", name: "Baloo 2", family: "'Baloo 2', sans-serif", size: 18 },
+  { id: "chewy", name: "Chewy", family: "'Chewy', cursive", size: 18 },
+  { id: "bungee", name: "Bungee", family: "'Bungee', sans-serif", size: 16 },
+  { id: "lilitaone", name: "Lilita One", family: "'Lilita One', sans-serif", size: 18 },
 ];
 const TEXT_COLORS = ["#4a3b42", "#9c6b84", "#c94f6a", "#a97142", "#6f8a63", "#fffdfb"];
-const BACKGROUNDS = [
+// Shared 10-color palette system used by both calendars and page
+// backgrounds — layout/texture x palette gives 50 real combinations each
+// without hand-authoring 50 one-off designs.
+const PALETTES = [
+  { id: "rose", label: "Rose", bg: "#fff8f3", accent: "#d98fac", text: "#4a3b42" },
+  { id: "blush", label: "Blush Pink", bg: "#fff0f8", accent: "#ff6fc0", text: "#5c1440" },
+  { id: "gold", label: "Gold", bg: "#fdf8ee", accent: "#c9885a", text: "#4a3b28" },
+  { id: "sage", label: "Sage", bg: "#f5f9f0", accent: "#7a9c68", text: "#33422b" },
+  { id: "sky", label: "Sky", bg: "#f0f6fc", accent: "#6f95b8", text: "#2b3a4a" },
+  { id: "lilac", label: "Lilac", bg: "#f9f2fb", accent: "#a9679c", text: "#42294a" },
+  { id: "butter", label: "Butter", bg: "#fffaf0", accent: "#c9a53c", text: "#4a3e22" },
+  { id: "coral", label: "Coral", bg: "#fff3f0", accent: "#e37a5c", text: "#4a2e26" },
+  { id: "midnight", label: "Midnight", bg: "#232a4d", accent: "#e8b563", text: "#e9e6f2" },
+  { id: "mono", label: "Mono", bg: "#fafafa", accent: "#4a3b42", text: "#4a3b42" },
+];
+
+// 5 textures x 10 palettes = 50 page looks, plus Blank and Custom color
+// as two standalone extras (52 total). Same combinatorial approach as
+// calendars, reusing the same PALETTES array.
+const PAGE_TEXTURES = [
   { id: "dot", label: "Dotted" },
   { id: "ruled", label: "Lined" },
   { id: "whimsical", label: "Whimsical" },
   { id: "vintage", label: "Vintage" },
   { id: "grid", label: "Grid" },
+];
+const PAGE_EXTRAS = [
   { id: "blank", label: "Blank" },
   { id: "custom", label: "Custom color" },
 ];
+
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const n = parseInt(full, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
 
 function parseSpotifyLink(url) {
   try {
@@ -81,6 +251,13 @@ const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "Ju
 
 function calendarFontSize(item) {
   return Math.max(9, item.w / 15) + "px";
+}
+
+function applyCalendarPalette(item, body) {
+  const palette = PALETTES.find((p) => p.id === item.calPalette) || PALETTES[0];
+  body.style.setProperty("--cal-bg", palette.bg);
+  body.style.setProperty("--cal-accent", palette.accent);
+  body.style.setProperty("--cal-text", palette.text);
 }
 
 function buildCalendarHTML(item) {
@@ -220,6 +397,7 @@ export async function openEditor({ pageId, journalId, template = "blank", files 
       tags: "",
       template,
       background: "dot",
+      bgPalette: "rose",
       items,
     };
   }
@@ -309,7 +487,7 @@ function buildShell() {
         <div class="spotify-card hidden" id="ed-spotify-card"></div>
       </div>
       <aside class="editor-sidebar" id="ed-sidebar">
-        <h3>Page settings</h3>
+        <h3 class="curate-heading">Curate</h3>
         <div id="ed-sidebar-content"></div>
       </aside>
     </div>
@@ -356,7 +534,86 @@ function applyPageBackground() {
   const page = document.getElementById("ed-page");
   if (!page) return;
   page.className = `canvas-page bg-${ed.page.background || "dot"}`;
+  const palette = PALETTES.find((p) => p.id === (ed.page.bgPalette || "rose")) || PALETTES[0];
+  const { r, g, b } = hexToRgb(palette.accent);
+  page.style.setProperty("--page-base", palette.bg);
+  page.style.setProperty("--page-line-soft", `rgba(${r},${g},${b},0.16)`);
+  page.style.setProperty("--page-line", `rgba(${r},${g},${b},0.28)`);
   page.style.backgroundColor = ed.page.background === "custom" && ed.page.bgColor ? ed.page.bgColor : "";
+}
+
+// Read-only page renderer shared with the flip-book/notepad reader
+// (js/screens/reader.js) so the "what a page looks like" logic lives in
+// exactly one place instead of being reimplemented for viewing.
+export function renderStaticPage(container, page, urlCache) {
+  container.className = `canvas-page bg-${page.background || "dot"}`;
+  const palette = PALETTES.find((p) => p.id === (page.bgPalette || "rose")) || PALETTES[0];
+  const { r, g, b } = hexToRgb(palette.accent);
+  container.style.setProperty("--page-base", palette.bg);
+  container.style.setProperty("--page-line-soft", `rgba(${r},${g},${b},0.16)`);
+  container.style.setProperty("--page-line", `rgba(${r},${g},${b},0.28)`);
+  container.style.backgroundColor = page.background === "custom" && page.bgColor ? page.bgColor : "";
+  container.innerHTML = "";
+  (page.items || []).forEach((item, idx) => {
+    container.appendChild(renderStaticItem(item, idx, urlCache));
+  });
+}
+
+function renderStaticItem(item, z, urlCache) {
+  const el = document.createElement("div");
+  const frameClass = item.type === "photo" && item.frame && item.frame !== "plain" ? " " + item.frame : "";
+  const calStyleClass = item.type === "calendar" && item.calStyle && item.calStyle !== "classic" ? " cal-style-" + item.calStyle : "";
+  el.className = `c-item ${item.type}${frameClass}${calStyleClass}`;
+  el.style.left = item.x + "px";
+  el.style.top = item.y + "px";
+  el.style.width = item.w + "px";
+  el.style.height = item.h + "px";
+  el.style.zIndex = z;
+  el.style.transform = `rotate(${item.rotation || 0}deg)`;
+
+  const body = document.createElement("div");
+  body.className = "c-body";
+
+  if (item.type === "photo") {
+    const img = document.createElement("img");
+    img.src = urlCache.get(item.mediaId) || "";
+    img.draggable = false;
+    body.appendChild(img);
+  } else if (item.type === "text") {
+    body.style.fontFamily = FONTS.find((f) => f.id === item.font)?.family || "var(--font-body)";
+    body.style.fontSize = (item.size || 18) + "px";
+    body.style.color = item.color || "#4a3b42";
+    body.textContent = item.text || "";
+  } else if (item.type === "sticker") {
+    if (item.mediaId) {
+      const img = document.createElement("img");
+      img.src = urlCache.get(item.mediaId) || "";
+      img.draggable = false;
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "contain";
+      body.appendChild(img);
+    } else if (item.svg) {
+      body.innerHTML = item.svg;
+      const svgEl = body.querySelector("svg");
+      if (svgEl) { svgEl.style.width = "100%"; svgEl.style.height = "100%"; svgEl.style.display = "block"; }
+    } else {
+      const span = document.createElement("span");
+      span.className = "emoji-glyph";
+      span.textContent = item.emoji;
+      span.style.fontSize = Math.min(item.w, item.h) * 0.78 + "px";
+      body.appendChild(span);
+    }
+  } else if (item.type === "tape") {
+    body.style.background = item.color;
+  } else if (item.type === "calendar") {
+    body.style.fontSize = calendarFontSize(item);
+    body.innerHTML = buildCalendarHTML(item);
+    applyCalendarPalette(item, body);
+  }
+
+  el.appendChild(body);
+  return el;
 }
 
 function renderCanvas() {
@@ -423,6 +680,7 @@ function createItemEl(item) {
   } else if (item.type === "calendar") {
     body.style.fontSize = calendarFontSize(item);
     body.innerHTML = buildCalendarHTML(item);
+    applyCalendarPalette(item, body);
   }
 
   el.appendChild(body);
@@ -732,8 +990,7 @@ function openTextSheet(existing) {
   const fontsWrap = document.getElementById("tx-fonts");
   FONTS.forEach((f) => {
     const b = document.createElement("button");
-    b.textContent = f.label;
-    b.style.fontFamily = f.family;
+    b.innerHTML = `<span class="fp-glyph" style="font-family:${f.family}">Aa</span><span class="fp-label">${f.name}</span>`;
     b.className = f.id === draft.font ? "selected" : "";
     b.addEventListener("click", () => { draft.font = f.id; draft.size = f.size; [...fontsWrap.children].forEach((c) => c.classList.remove("selected")); b.classList.add("selected"); });
     fontsWrap.appendChild(b);
@@ -851,15 +1108,15 @@ function openCalendarSheet() {
       year = y;
       month = m - 1;
     }
-    const item = addItem({ type: "calendar", year, month, calStyle: "classic", w: 230, h: 260, rotation: 0 });
-    // Jump straight into style picking so the 5 calendar looks are
-    // immediately obvious, instead of requiring the user to know they
+    const item = addItem({ type: "calendar", year, month, calStyle: "classic", calPalette: "rose", w: 230, h: 260, rotation: 0 });
+    // Jump straight into style picking so the 50 layout x palette looks
+    // are immediately obvious, instead of requiring the user to know they
     // need to tap the item afterward to find the Style button.
     openCalendarStyleSheet(item);
   });
 }
 
-const CAL_STYLES = [
+const CAL_LAYOUTS = [
   { id: "classic", label: "Classic" },
   { id: "handwritten", label: "Handwritten" },
   { id: "whimsical", label: "Whimsical" },
@@ -868,9 +1125,15 @@ const CAL_STYLES = [
 ];
 
 function openCalendarStyleSheet(item) {
-  openSheet({ title: "Calendar style", html: `<div class="calstyle-grid" id="cs-grid"></div>` });
+  openSheet({
+    title: "Calendar style",
+    html: `
+      <div class="field"><label>Layout</label><div class="calstyle-grid" id="cs-grid"></div></div>
+      <div class="field"><label>Color palette (${PALETTES.length} to choose from)</label><div class="palette-grid" id="cs-palette"></div></div>
+    `,
+  });
   const grid = document.getElementById("cs-grid");
-  CAL_STYLES.forEach((s) => {
+  CAL_LAYOUTS.forEach((s) => {
     const b = document.createElement("button");
     b.className = `cs-swatch cal-style-${s.id}` + ((item.calStyle || "classic") === s.id ? " selected" : "");
     b.innerHTML = `
@@ -882,9 +1145,27 @@ function openCalendarStyleSheet(item) {
       commitHistory();
       renderCanvas();
       selectItem(item.id);
-      closeSheet();
+      grid.querySelectorAll("button").forEach((x) => x.classList.remove("selected"));
+      b.classList.add("selected");
     });
     grid.appendChild(b);
+  });
+  const paletteGrid = document.getElementById("cs-palette");
+  PALETTES.forEach((p) => {
+    const b = document.createElement("button");
+    b.className = "palette-swatch" + ((item.calPalette || "rose") === p.id ? " selected" : "");
+    b.style.background = p.bg;
+    b.style.borderColor = p.accent;
+    b.title = p.label;
+    b.addEventListener("click", () => {
+      item.calPalette = p.id;
+      commitHistory();
+      renderCanvas();
+      selectItem(item.id);
+      paletteGrid.querySelectorAll("button").forEach((x) => x.classList.remove("selected"));
+      b.classList.add("selected");
+    });
+    paletteGrid.appendChild(b);
   });
 }
 
@@ -1054,21 +1335,47 @@ function openFrameSheet(item) {
 }
 
 function openPageSettingsSheet() {
-  openSheet({ title: "Page settings", html: `<div id="ps-sheet-body"></div>` });
+  openSheet({ title: `<span class="curate-heading">Curate</span>`, html: `<div id="ps-sheet-body"></div>` });
   renderPageSettings(document.getElementById("ps-sheet-body"));
 }
 
-function renderPageSettings(container) {
+async function addNewPageToJournal() {
+  const journalId = ed.page.journalId;
+  if (!journalId) {
+    showToast("This page isn't part of a journal yet.");
+    return;
+  }
+  window.removeEventListener("resize", onEditorResize);
+  stopPageAudio();
+  await persist();
+  ed = null;
+  document.getElementById("bottom-nav").style.display = "flex";
+  openCreateFlow({ journalId });
+}
+
+async function renderPageSettings(container) {
+  const recentColors = await db.kvGet("recentPageColors", []);
   container.innerHTML = `
+    <button class="btn btn-secondary btn-block" data-f="addPage" style="margin-bottom:14px;">+ Add another page</button>
     <div class="field"><label>Title</label><input type="text" data-f="title" value="${escapeHtml(ed.page.title || "")}" maxlength="50" /></div>
     <div class="field"><label>Date</label><input type="date" data-f="date" value="${ed.page.dateISO || ""}" /></div>
     <div class="field"><label>Mood</label><div class="mood-picker" data-f="mood"></div></div>
     <div class="field"><label>Location (optional)</label><input type="text" data-f="loc" value="${escapeHtml(ed.page.location || "")}" placeholder="e.g. Rome, Italy" /></div>
     <div class="field"><label>Tags (optional, comma separated)</label><input type="text" data-f="tags" value="${escapeHtml(ed.page.tags || "")}" placeholder="friends, sunny, birthday" /></div>
     <div class="field"><label>Page style</label><div class="page-style-grid" data-f="bg"></div></div>
-    <div class="field${ed.page.background === "custom" ? "" : " hidden"}" data-f="colorField"><label>Page color</label><input type="color" data-f="bgColor" value="${ed.page.bgColor || "#fbe6ec"}" /></div>
+    <div class="field${["blank", "custom"].includes(ed.page.background) ? " hidden" : ""}" data-f="paletteField">
+      <label>Color palette (${PALETTES.length} to choose from)</label>
+      <div class="palette-grid" data-f="bgPalette"></div>
+    </div>
+    <div class="field${ed.page.background === "custom" ? "" : " hidden"}" data-f="colorField">
+      <label>Page color</label>
+      <input type="color" data-f="bgColor" value="${ed.page.bgColor || "#fbe6ec"}" />
+      ${recentColors.length ? `<div class="recent-color-row" data-f="recentColors">${recentColors.map((c) => `<button class="recent-color-swatch" style="background:${c}" data-color="${c}" title="${c}"></button>`).join("")}</div>` : ""}
+    </div>
     <div class="field"><label>Music</label><div data-f="music"></div></div>
   `;
+
+  container.querySelector('[data-f="addPage"]').addEventListener("click", addNewPageToJournal);
 
   const titleInput = container.querySelector('[data-f="title"]');
   titleInput.addEventListener("input", () => {
@@ -1101,7 +1408,8 @@ function renderPageSettings(container) {
 
   const bgWrap = container.querySelector('[data-f="bg"]');
   const colorField = container.querySelector('[data-f="colorField"]');
-  BACKGROUNDS.forEach((style) => {
+  const paletteField = container.querySelector('[data-f="paletteField"]');
+  [...PAGE_TEXTURES, ...PAGE_EXTRAS].forEach((style) => {
     const b = document.createElement("button");
     b.className = `canvas-page bg-${style.id}` + ((ed.page.background || "dot") === style.id ? " selected" : "");
     b.innerHTML = `<span>${style.label}</span>`;
@@ -1110,14 +1418,44 @@ function renderPageSettings(container) {
       bgWrap.querySelectorAll("button").forEach((x) => x.classList.remove("selected"));
       b.classList.add("selected");
       colorField.classList.toggle("hidden", style.id !== "custom");
+      paletteField.classList.toggle("hidden", style.id === "blank" || style.id === "custom");
       applyPageBackground();
     });
     bgWrap.appendChild(b);
+  });
+  const paletteWrap = container.querySelector('[data-f="bgPalette"]');
+  PALETTES.forEach((p) => {
+    const b = document.createElement("button");
+    b.className = "palette-swatch" + ((ed.page.bgPalette || "rose") === p.id ? " selected" : "");
+    b.style.background = p.bg;
+    b.style.borderColor = p.accent;
+    b.title = p.label;
+    b.addEventListener("click", () => {
+      ed.page.bgPalette = p.id;
+      paletteWrap.querySelectorAll("button").forEach((x) => x.classList.remove("selected"));
+      b.classList.add("selected");
+      applyPageBackground();
+    });
+    paletteWrap.appendChild(b);
   });
   const colorInput = container.querySelector('[data-f="bgColor"]');
   colorInput.addEventListener("input", () => {
     ed.page.bgColor = colorInput.value;
     applyPageBackground();
+  });
+  colorInput.addEventListener("change", async () => {
+    const hex = colorInput.value;
+    const recent = await db.kvGet("recentPageColors", []);
+    const updated = [hex, ...recent.filter((c) => c.toLowerCase() !== hex.toLowerCase())].slice(0, 8);
+    await db.kvSet("recentPageColors", updated);
+  });
+  container.querySelectorAll('[data-f="recentColors"] .recent-color-swatch').forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const hex = btn.dataset.color;
+      ed.page.bgColor = hex;
+      colorInput.value = hex;
+      applyPageBackground();
+    });
   });
 
   renderMusicSection(container.querySelector('[data-f="music"]'));
@@ -1158,6 +1496,13 @@ function wireChrome() {
   document.getElementById("ed-music-toggle").addEventListener("click", async () => {
     await togglePageAudio(ed.page.audio, ed.urlCache);
     updateMusicUI();
+  });
+  document.getElementById("ed-sidebar").addEventListener("dblclick", (e) => {
+    if (e.target.closest("input, textarea, button, .mood-picker, .page-style-grid, .vibe-grid, .recent-color-row")) return;
+    document.getElementById("ed-sidebar").classList.add("collapsed");
+  });
+  document.getElementById("ed-viewport").addEventListener("dblclick", () => {
+    document.getElementById("ed-sidebar").classList.remove("collapsed");
   });
   document.getElementById("ed-messy").addEventListener("click", () => {
     ed.messy = !ed.messy;
