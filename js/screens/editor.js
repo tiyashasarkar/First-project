@@ -1,6 +1,8 @@
 import * as db from "../db.js";
 import { openSheet, closeSheet, showToast, escapeHtml, MOODS } from "../ui.js";
 import { setMascotVisible } from "../mascot.js";
+import { VIBES } from "../vibes.js";
+import { playPageAudio, stopPageAudio, togglePageAudio, isCurrentlyPlaying } from "../music.js";
 
 const PAGE_W = 380;
 const PAGE_H = 507;
@@ -226,9 +228,18 @@ export async function openEditor({ pageId, journalId, template = "blank", files 
   renderCanvas();
   wireChrome();
   wireViewportGestures();
+
+  updateMusicUI();
+  if (ed.page.audio) {
+    // Best-effort autoplay — browsers may block this since opening the
+    // page involved an await chain since the user's tap, in which case
+    // the toggle pill just sits paused, inviting a tap to start it.
+    playPageAudio(ed.page.audio, ed.urlCache).catch(() => {}).then(updateMusicUI);
+  }
 }
 
 export function closeEditor() {
+  stopPageAudio();
   if (ed && !ed.saved) {
     persist().catch(() => {});
   }
@@ -248,6 +259,7 @@ function buildShell() {
         <div style="font-size:10.5px;color:var(--ink-soft);" id="ed-date-txt"></div>
       </button>
       <div class="grp">
+        <button class="icon-btn" id="ed-music"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></button>
         <button class="icon-btn" id="ed-done" style="background:var(--grad-fab);"><svg viewBox="0 0 24 24" style="stroke:white;"><path d="M4 12l5 5L20 6"/></svg></button>
       </div>
     </div>
@@ -255,6 +267,10 @@ function buildShell() {
       <div class="canvas-stage" id="ed-stage">
         <div class="canvas-page" id="ed-page"></div>
       </div>
+      <button class="music-toggle-pill hidden" id="ed-music-toggle">
+        <span class="mtp-icon" id="ed-music-icon">▶</span>
+        <span class="mtp-label" id="ed-music-label"></span>
+      </button>
     </div>
     <div class="editor-fabbar">
       <button class="efab" id="ed-add-photo"><div class="circ"><svg viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-2h7l1 2H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg></div><span>Photo</span></button>
@@ -311,7 +327,8 @@ function renderCanvas() {
 function createItemEl(item) {
   const el = document.createElement("div");
   const frameClass = item.type === "photo" && item.frame && item.frame !== "plain" ? " " + item.frame : "";
-  el.className = `c-item ${item.type}${frameClass}${ed.selectedId === item.id ? " selected" : ""}${item.locked ? " locked" : ""}`;
+  const calStyleClass = item.type === "calendar" && item.calStyle && item.calStyle !== "classic" ? " cal-style-" + item.calStyle : "";
+  el.className = `c-item ${item.type}${frameClass}${calStyleClass}${ed.selectedId === item.id ? " selected" : ""}${item.locked ? " locked" : ""}`;
   el.style.left = item.x + "px";
   el.style.top = item.y + "px";
   el.style.width = item.w + "px";
@@ -519,6 +536,7 @@ function updateItemToolbar() {
   bar.innerHTML = `
     ${item.type === "text" ? `<button id="it-edit" title="Edit"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3"/></svg></button>` : ""}
     ${item.type === "photo" ? `<button id="it-frame" title="Frame"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 4v16M4 9h5"/></svg></button>` : ""}
+    ${item.type === "calendar" ? `<button id="it-calstyle" title="Style"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6L21 9.3l-4.5 4.2 1.2 6.2L12 16.8l-5.7 2.9 1.2-6.2L3 9.3l6.4-.7z"/></svg></button>` : ""}
     <button id="it-back" title="Send backward"><svg viewBox="0 0 24 24"><path d="M4 4h10v10H4z"/><path d="M10 10h10v10H10z"/></svg></button>
     <button id="it-fwd" title="Bring forward"><svg viewBox="0 0 24 24"><path d="M10 10h10v10H10z"/><path d="M4 4h10v10H4z" fill="none"/></svg></button>
     <button id="it-dup" title="Duplicate"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg></button>
@@ -527,6 +545,7 @@ function updateItemToolbar() {
   `;
   if (item.type === "text") document.getElementById("it-edit").addEventListener("click", () => openTextSheet(item));
   if (item.type === "photo") document.getElementById("it-frame").addEventListener("click", () => openFrameSheet(item));
+  if (item.type === "calendar") document.getElementById("it-calstyle").addEventListener("click", () => openCalendarStyleSheet(item));
   document.getElementById("it-back").addEventListener("click", () => reorder(item, -1));
   document.getElementById("it-fwd").addEventListener("click", () => reorder(item, 1));
   document.getElementById("it-dup").addEventListener("click", () => duplicateItem(item));
@@ -747,8 +766,119 @@ function openCalendarSheet() {
       month = m - 1;
     }
     closeSheet();
-    addItem({ type: "calendar", year, month, w: 230, h: 260, rotation: 0 });
+    addItem({ type: "calendar", year, month, calStyle: "classic", w: 230, h: 260, rotation: 0 });
   });
+}
+
+const CAL_STYLES = [
+  { id: "classic", label: "Classic" },
+  { id: "handwritten", label: "Handwritten" },
+  { id: "whimsical", label: "Whimsical" },
+  { id: "oldmoney", label: "Old Money" },
+  { id: "sweetheart", label: "Sweetheart" },
+];
+
+function openCalendarStyleSheet(item) {
+  openSheet({ title: "Calendar style", html: `<div class="calstyle-grid" id="cs-grid"></div>` });
+  const grid = document.getElementById("cs-grid");
+  CAL_STYLES.forEach((s) => {
+    const b = document.createElement("button");
+    b.className = `cs-swatch cal-style-${s.id}` + ((item.calStyle || "classic") === s.id ? " selected" : "");
+    b.innerHTML = `
+      <div class="cs-preview"><span class="cs-head">Jul</span><div class="cs-dots"><span></span><span></span><span></span></div></div>
+      <span class="cs-label">${s.label}</span>
+    `;
+    b.addEventListener("click", () => {
+      item.calStyle = s.id;
+      commitHistory();
+      renderCanvas();
+      selectItem(item.id);
+      closeSheet();
+    });
+    grid.appendChild(b);
+  });
+}
+
+function pickAndUploadAudio() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "audio/*";
+  input.style.display = "none";
+  document.body.appendChild(input);
+  input.addEventListener("change", async () => {
+    const file = input.files && input.files[0];
+    document.body.removeChild(input);
+    if (!file) return;
+    closeSheet();
+    showToast("Adding your clip…");
+    try {
+      const mediaId = await db.saveAudioBlob(file);
+      ed.page.audio = { type: "upload", mediaId };
+      updateMusicUI();
+      await playPageAudio(ed.page.audio, ed.urlCache);
+      updateMusicUI();
+      showToast("Music added 🎵");
+    } catch (e) {
+      showToast(e.message || "Couldn't add that clip — try a shorter one.");
+    }
+  });
+  input.click();
+}
+
+function openMusicSheet() {
+  const current = ed.page.audio;
+  openSheet({
+    title: "Add music",
+    html: `
+      <div class="field"><button class="btn btn-secondary btn-block" id="mu-upload">🎙️ Upload a clip</button></div>
+      <div class="field"><label>Or pick a vibe</label><div class="vibe-grid" id="mu-vibes"></div></div>
+      ${current ? `<button class="btn btn-block" id="mu-remove" style="color:#c94f6a;margin-top:4px;">Remove music</button>` : ""}
+    `,
+  });
+  document.getElementById("mu-upload").addEventListener("click", pickAndUploadAudio);
+  const grid = document.getElementById("mu-vibes");
+  VIBES.forEach((v) => {
+    const b = document.createElement("button");
+    b.className = "vibe-swatch" + (current?.type === "vibe" && current.vibeId === v.id ? " selected" : "");
+    b.innerHTML = `<span class="vibe-note">♪</span><span>${v.label}</span>`;
+    b.addEventListener("click", async () => {
+      ed.page.audio = { type: "vibe", vibeId: v.id };
+      closeSheet();
+      updateMusicUI();
+      showToast(`${v.label} vibe added 🎵`);
+      try {
+        await playPageAudio(ed.page.audio, ed.urlCache);
+      } finally {
+        updateMusicUI();
+      }
+    });
+    grid.appendChild(b);
+  });
+  if (current) {
+    document.getElementById("mu-remove").addEventListener("click", () => {
+      stopPageAudio();
+      ed.page.audio = null;
+      closeSheet();
+      updateMusicUI();
+      showToast("Music removed");
+    });
+  }
+}
+
+function updateMusicUI() {
+  const pill = document.getElementById("ed-music-toggle");
+  if (!pill || !ed) return;
+  const audio = ed.page.audio;
+  if (!audio) {
+    pill.classList.add("hidden");
+    return;
+  }
+  pill.classList.remove("hidden");
+  const label = audio.type === "vibe" ? (VIBES.find((v) => v.id === audio.vibeId)?.label || "Vibe") : "Your clip";
+  const nowPlaying = isCurrentlyPlaying(audio);
+  document.getElementById("ed-music-icon").textContent = nowPlaying ? "⏸" : "▶";
+  document.getElementById("ed-music-label").textContent = "🎵 " + label;
+  pill.classList.toggle("playing", nowPlaying);
 }
 
 function openTapeSheet() {
@@ -877,6 +1007,11 @@ function wireChrome() {
   document.getElementById("ed-add-sticker").addEventListener("click", openStickerSheet);
   document.getElementById("ed-add-tape").addEventListener("click", openTapeSheet);
   document.getElementById("ed-add-calendar").addEventListener("click", openCalendarSheet);
+  document.getElementById("ed-music").addEventListener("click", openMusicSheet);
+  document.getElementById("ed-music-toggle").addEventListener("click", async () => {
+    await togglePageAudio(ed.page.audio, ed.urlCache);
+    updateMusicUI();
+  });
   document.getElementById("ed-messy").addEventListener("click", () => {
     ed.messy = !ed.messy;
     document.getElementById("ed-messy-circ").classList.toggle("on", ed.messy);
@@ -935,6 +1070,7 @@ async function persist() {
 }
 
 async function finishAndLeave() {
+  stopPageAudio();
   await persist();
   const rs = returnScreen;
   ed = null;

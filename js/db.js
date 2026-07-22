@@ -153,6 +153,76 @@ export async function saveMediaBlob(blob) {
   return id;
 }
 
+// ---- audio storage: same idea as photos — compressed and embedded ----
+// directly in Firestore, so page music/voice clips also stay free-tier.
+// A short clip re-encoded to opus at a modest bitrate is tiny (a 12s clip
+// is well under 100KB), so one compression pass is enough — no need for
+// the quality-reduction retry loop images use.
+
+function blobToDataURL(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function compressAudioToDataURL(file, { maxSeconds = 12, maxBytes = 700000 } = {}) {
+  if (file.size <= maxBytes) return blobToDataURL(file);
+
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (typeof MediaRecorder === "undefined" || !AudioCtx) {
+    throw new Error("This browser can't process that audio file — try a shorter clip.");
+  }
+
+  const ctx = new AudioCtx();
+  let audioBuffer;
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+  } catch {
+    await ctx.close();
+    throw new Error("Couldn't read that audio file — try a different one.");
+  }
+
+  const duration = Math.min(audioBuffer.duration, maxSeconds);
+  const dataUrl = await new Promise((resolve, reject) => {
+    const dest = ctx.createMediaStreamDestination();
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(dest);
+
+    let mimeType = "audio/webm;codecs=opus";
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+    }
+    const recorder = new MediaRecorder(dest.stream, mimeType ? { mimeType, audioBitsPerSecond: 32000 } : { audioBitsPerSecond: 32000 });
+    const chunks = [];
+    recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    recorder.onstop = () => blobToDataURL(new Blob(chunks, { type: mimeType || "audio/webm" })).then(resolve, reject);
+    recorder.onerror = (e) => reject(e.error || e);
+
+    recorder.start();
+    source.start();
+    source.stop(ctx.currentTime + duration);
+    source.onended = () => setTimeout(() => { if (recorder.state !== "inactive") recorder.stop(); }, 80);
+  });
+  await ctx.close();
+
+  if (dataUrl.length * 0.75 > maxBytes) {
+    throw new Error("That clip is still too large after compression — try something shorter.");
+  }
+  return dataUrl;
+}
+
+export async function saveAudioBlob(file) {
+  const id = idgen();
+  const dataUrl = await compressAudioToDataURL(file);
+  await setDoc(doc(colFor("media"), id), { id, dataUrl, kind: "audio", createdAt: Date.now() });
+  return id;
+}
+
 export async function getMediaURL(mediaId, cache) {
   if (!mediaId) return null;
   if (cache && cache.has(mediaId)) return cache.get(mediaId);

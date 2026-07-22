@@ -348,15 +348,6 @@ a {
   position: relative;
 }
 
-.nav-fab::after {
-  content: "🎀";
-  position: absolute;
-  top: -11px;
-  right: -5px;
-  font-size: 15px;
-  filter: drop-shadow(0 1px 1px rgba(74, 59, 66, 0.25));
-}
-
 .nav-fab svg {
   width: 26px;
   height: 26px;
@@ -1402,6 +1393,84 @@ a {
   margin-top: 4px;
 }
 
+.music-toggle-pill {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 999px;
+  background: rgba(255, 253, 251, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-card);
+  border: 1.5px solid var(--line);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--mauve-dark);
+}
+
+.music-toggle-pill.hidden {
+  display: none;
+}
+
+.music-toggle-pill .mtp-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--grad-fab);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.music-toggle-pill.playing .mtp-icon {
+  animation: mascotPulse 1.2s ease-in-out infinite;
+}
+
+.vibe-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 4px 0 2px;
+}
+
+.vibe-swatch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--cream);
+  border: 1.5px solid var(--line);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.vibe-swatch.selected {
+  border-color: var(--dusty-rose);
+  background: var(--blush);
+}
+
+.vibe-note {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--grad-fab);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
 .c-item.text .c-body {
   padding: 6px;
   white-space: pre-wrap;
@@ -1498,6 +1567,144 @@ a {
   color: #fff;
   font-weight: 700;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Calendar aesthetic style variants                                      */
+/* ---------------------------------------------------------------------- */
+
+.c-item.calendar.cal-style-handwritten .c-body {
+  background: var(--warm-white);
+  border: 2px dashed var(--dusty-rose);
+  border-radius: 10px;
+}
+.c-item.calendar.cal-style-handwritten .cal-head,
+.c-item.calendar.cal-style-handwritten .cal-cell {
+  font-family: var(--font-hand);
+}
+.c-item.calendar.cal-style-handwritten .cal-head { font-size: 1.2em; }
+.c-item.calendar.cal-style-handwritten .cal-cell.today {
+  background: none;
+  border: 2px solid var(--dusty-rose);
+  color: var(--dusty-rose);
+  transform: rotate(-6deg);
+}
+
+.c-item.calendar.cal-style-whimsical .c-body {
+  background: linear-gradient(160deg, #fff0f8, #ffe9d6 60%, #eaf6ff);
+  border: 2px dotted var(--gold);
+  border-radius: 20px;
+}
+.c-item.calendar.cal-style-whimsical .cal-head { font-family: var(--font-hand2); color: var(--mauve); }
+.c-item.calendar.cal-style-whimsical .cal-year { color: var(--mauve); }
+.c-item.calendar.cal-style-whimsical .cal-cell { font-family: var(--font-hand3); }
+.c-item.calendar.cal-style-whimsical .cal-cell.today {
+  background: var(--gold);
+  color: #fff;
+  border-radius: 0;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.c-item.calendar.cal-style-oldmoney .c-body {
+  background: #f7f1e3;
+  border: 1px solid #b8975a;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 4px #fdfbf4;
+}
+.c-item.calendar.cal-style-oldmoney .cal-head,
+.c-item.calendar.cal-style-oldmoney .cal-cell {
+  font-family: var(--font-display);
+  color: #3a3327;
+}
+.c-item.calendar.cal-style-oldmoney .cal-year,
+.c-item.calendar.cal-style-oldmoney .cal-dow { color: #8a6a2f; }
+.c-item.calendar.cal-style-oldmoney .cal-cell.today {
+  background: none;
+  border: 1px solid #b8975a;
+  color: #6e4f1c;
+  font-weight: 700;
+}
+
+.c-item.calendar.cal-style-sweetheart .c-body {
+  background: linear-gradient(160deg, #fff5fa, #ffd9ea);
+  border: 2px solid #ffb8d9;
+  border-radius: 24px;
+}
+.c-item.calendar.cal-style-sweetheart .cal-head { font-family: var(--font-script); font-size: 1.35em; color: #d6398f; }
+.c-item.calendar.cal-style-sweetheart .cal-year { color: #d6398f; }
+.c-item.calendar.cal-style-sweetheart .cal-cell.today {
+  background: #ff6fc0;
+  color: #fff;
+  border-radius: 0;
+  clip-path: url(#blossom-heart-clip);
+}
+
+.calstyle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 4px 0 2px;
+}
+
+.cs-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+}
+
+.cs-swatch.selected {
+  border-color: var(--dusty-rose);
+  background: var(--blush);
+}
+
+.cs-preview {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 10px;
+  background: var(--warm-white);
+  border: 1.5px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.cs-preview .cs-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mauve-dark);
+}
+
+.cs-preview .cs-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.cs-preview .cs-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dusty-rose);
+}
+
+.cs-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-top: 6px;
+}
+
+.cs-swatch.cal-style-handwritten .cs-preview { border-style: dashed; }
+.cs-swatch.cal-style-handwritten .cs-head { font-family: var(--font-hand); font-size: 16px; }
+.cs-swatch.cal-style-whimsical .cs-preview { background: linear-gradient(160deg, #fff0f8, #ffe9d6); border-style: dotted; }
+.cs-swatch.cal-style-whimsical .cs-head { font-family: var(--font-hand2); }
+.cs-swatch.cal-style-oldmoney .cs-preview { background: #f7f1e3; border-color: #b8975a; }
+.cs-swatch.cal-style-oldmoney .cs-head { font-family: var(--font-display); color: #3a3327; }
+.cs-swatch.cal-style-sweetheart .cs-preview { background: linear-gradient(160deg, #fff5fa, #ffd9ea); border-color: #ffb8d9; }
+.cs-swatch.cal-style-sweetheart .cs-head { font-family: var(--font-script); font-size: 17px; color: #d6398f; }
 
 .signature-grid {
   display: grid;
@@ -2084,10 +2291,12 @@ a {
   position: absolute;
   right: 0;
   bottom: 62px;
-  width: 168px;
+  width: 244px;
+  max-height: 72vh;
+  overflow-y: auto;
   padding: 10px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   background: #fff;
   border: 2px solid #ff96c5;
@@ -2111,10 +2320,16 @@ a {
   border-radius: 16px;
   background: #ffe3f0;
   border: 1.5px solid #ff96c5;
-  font-size: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 10px;
+}
+
+.glam-sticker svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .glam-sticker:active {
@@ -2182,6 +2397,16 @@ a {
   z-index: 500;
   pointer-events: none;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.glam-kiss-mark {
+  position: fixed;
+  left: 0;
+  top: 0;
+  font-size: 26px;
+  z-index: 500;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18));
 }
 
 .glam-call-card {
