@@ -5,6 +5,7 @@ import { auth, isFirebaseConfigured } from "./firebase.js";
 import { showToast, openSheet, closeSheet } from "./ui.js";
 import { getTheme, applyTheme } from "./theme.js";
 import { renderAuth } from "./screens/auth.js";
+import { renderCover } from "./screens/cover.js";
 import { renderModePicker } from "./screens/mode-picker.js";
 import { renderHome } from "./screens/home.js";
 import { renderJournals, renderJournalDetail } from "./screens/journals.js";
@@ -223,7 +224,6 @@ async function pickModeIfNeeded() {
 
 async function showSignedInApp() {
   document.getElementById("auth-screen").classList.remove("active");
-  document.getElementById("splash").classList.add("hidden");
   await offerLocalDataMigrationIfNeeded();
   await pickModeIfNeeded();
   await seedIfEmpty();
@@ -236,11 +236,29 @@ async function showSignedInApp() {
 async function showSignedOut() {
   unmountMascot();
   unmountAssistant();
-  document.getElementById("splash").classList.add("hidden");
   document.getElementById("onboarding").classList.remove("active");
   const authScreen = document.getElementById("auth-screen");
   renderAuth(authScreen);
   authScreen.classList.add("active");
+}
+
+// The journal cover is the true landing screen: it's shown immediately and
+// stays up until the visitor physically "opens" it. What appears once it
+// opens (sign-in, or straight to the theme page for a returning visitor)
+// depends on the auth check, which runs in the background at the same
+// time — so opening the cover never has to wait on a slow connection, and
+// a slow cover-open never blocks the auth check either. Whichever finishes
+// second is the one that actually reveals the next screen.
+let authUser = undefined; // undefined = not resolved yet
+let coverOpened = false;
+let revealed = false;
+
+function tryReveal() {
+  if (revealed || authUser === undefined || !coverOpened) return;
+  revealed = true;
+  document.getElementById("cover-screen").classList.add("hidden");
+  if (authUser) showSignedInApp();
+  else showSignedOut();
 }
 
 async function init() {
@@ -250,7 +268,7 @@ async function init() {
   if (savedTheme) applyTheme(savedTheme);
 
   if (!isFirebaseConfigured) {
-    document.getElementById("splash").classList.add("hidden");
+    document.getElementById("cover-screen").classList.add("hidden");
     document.getElementById("setup-needed").classList.add("active");
     return;
   }
@@ -258,10 +276,15 @@ async function init() {
   wireNav();
   registerServiceWorker();
 
+  renderCover(document.getElementById("cover-screen"), () => {
+    coverOpened = true;
+    tryReveal();
+  });
+
   onAuthStateChanged(auth, async (user) => {
-    await waitAtLeast(600);
-    if (user) await showSignedInApp();
-    else await showSignedOut();
+    await waitAtLeast(150);
+    authUser = user;
+    tryReveal();
   });
 }
 

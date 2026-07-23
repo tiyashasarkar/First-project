@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-<title>Blossom — a photo journal</title>
-<meta name="description" content="Blossom: a soft, cute scrapbook-style photo journal. Where memories become pages." />
+<title>Once upon a Tuesday</title>
+<meta name="description" content="Once upon a Tuesday: a handmade-feeling scrapbook photo journal. Where memories become pages." />
 
 <!-- iOS home screen / standalone app behaviour -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Blossom" />
-<meta name="theme-color" content="#fbe4ec" />
+<meta name="apple-mobile-web-app-title" content="Once upon a Tuesday" />
+<meta name="theme-color" content="#fdf3da" />
 <link rel="apple-touch-icon" href="icons/icon-180.png" />
 <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png" />
 <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png" />
@@ -21,6 +21,7 @@
 <link rel="manifest" href="manifest.webmanifest" />
 
 <link rel="stylesheet" href="css/styles.css" />
+<link rel="stylesheet" href="css/cover.css" />
 </head>
 <body>
 
@@ -33,28 +34,15 @@
   </defs>
 </svg>
 
-<!-- SPLASH -->
-<div id="splash">
-  <svg class="blossom-mark" viewBox="0 0 100 100" fill="none">
-    <g>
-      <circle cx="50" cy="20" r="18" fill="#fffbf7"/>
-      <circle cx="76" cy="35" r="18" fill="#fffbf7"/>
-      <circle cx="67" cy="63" r="18" fill="#fffbf7"/>
-      <circle cx="33" cy="63" r="18" fill="#fffbf7"/>
-      <circle cx="24" cy="35" r="18" fill="#fffbf7"/>
-      <circle cx="50" cy="45" r="13" fill="#f0bd82"/>
-    </g>
-  </svg>
-  <h1><svg class="bow" viewBox="0 0 100 60" fill="none"><path d="M46 30 L8 10 Q1 10 1 22 L1 38 Q1 50 8 50 Z" fill="#e8a0bb"/><path d="M46 30 L84 10 Q91 10 91 22 L91 38 Q91 50 84 50 Z" fill="#f2b6cc"/><circle cx="46" cy="30" r="8" fill="#c9698f"/></svg>Blossom</h1>
-  <p>where memories become pages</p>
-</div>
+<!-- JOURNAL COVER (the very first thing anyone sees — populated by js/screens/cover.js) -->
+<div id="cover-screen"></div>
 
 <!-- SETUP NEEDED (shown instead of everything else until firebase-config.js has real values) -->
 <div id="setup-needed">
-  <div class="emoji">⚙️🌸</div>
+  <div class="emoji">⚙️📖</div>
   <h1>One quick setup step</h1>
   <p>
-    Blossom needs a free Firebase account to sign you in and keep your memories synced.
+    Once upon a Tuesday needs a free Firebase account to sign you in and keep your memories synced.
     Open <code>js/firebase-config.js</code> and paste in your project's values — full steps are in <code>README.md</code> under "Setting up your free account".
   </p>
 </div>
@@ -69,8 +57,8 @@
 <div id="onboarding">
   <div class="ob-slides" id="ob-slides">
     <div class="ob-slide">
-      <div class="emoji">🌸</div>
-      <h2>Welcome to Blossom</h2>
+      <div class="emoji">📖</div>
+      <h2>Welcome to Once upon a Tuesday</h2>
       <p>A cozy, private scrapbook for your photos and memories — soft, personal, and made for your phone.</p>
     </div>
     <div class="ob-slide">
@@ -147,11 +135,11 @@
 <script>
   window.__blossomWatchdog = setTimeout(function () {
     document.body.insertAdjacentHTML("beforeend",
-      '<div style="position:fixed;inset:0;z-index:999;background:#fbe4ec;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;font-family:-apple-system,sans-serif;">' +
-      '<div style="font-size:44px;margin-bottom:14px;">🌸</div>' +
+      '<div style="position:fixed;inset:0;z-index:999;background:#fdf3da;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;font-family:-apple-system,sans-serif;">' +
+      '<div style="font-size:44px;margin-bottom:14px;">📖</div>' +
       '<h1 style="color:#6f4a5e;font-size:20px;margin:0 0 10px;">Having trouble connecting</h1>' +
-      '<p style="color:#9c6b84;font-size:14.5px;line-height:1.6;max-width:300px;margin:0 0 20px;">Blossom couldn\'t load just now — check your internet connection and try again.</p>' +
-      '<button onclick="location.reload()" style="background:linear-gradient(135deg,#f2a9c4,#d98fac);color:white;border:none;border-radius:999px;padding:14px 28px;font-size:15px;font-weight:700;">Reload</button>' +
+      '<p style="color:#9c6b84;font-size:14.5px;line-height:1.6;max-width:300px;margin:0 0 20px;">Once upon a Tuesday couldn\'t load just now — check your internet connection and try again.</p>' +
+      '<button onclick="location.reload()" style="background:linear-gradient(135deg,#ffcf5c,#f4a83a);color:white;border:none;border-radius:999px;padding:14px 28px;font-size:15px;font-weight:700;">Reload</button>' +
       "</div>"
     );
   }, 9000);

@@ -220,7 +220,7 @@ export async function exportAllData() {
 }
 
 export async function importAllData(data) {
-  if (!data || data.app !== "blossom-journal") throw new Error("This doesn't look like a Blossom backup file.");
+  if (!data || data.app !== "blossom-journal") throw new Error("This doesn't look like a valid backup file.");
   for (const m of data.media || []) {
     const blob = await (await fetch(m.dataUrl)).blob();
     await put("media", { id: m.id, blob, createdAt: m.createdAt });

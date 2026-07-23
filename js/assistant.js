@@ -62,9 +62,9 @@ const QUESTION_RE = /\?\s*$|^\s*(how|what|why|can|is|does|do|where|when|who|are)
 // ways — "how do I add a photo" / "add photo" / "add a picture" should
 // all land the same answer.
 const FAQ = [
-  { keywords: ["who are you", "what's your name", "whats your name", "your name"], answer: "I'm Pup Cup! 🐶 I'm Blossom's built-in helper — I can redesign your pages and answer questions about the app." },
-  { keywords: ["are you ai", "are you a real ai", "are you chatgpt", "are you claude", "real ai", "are you a robot", "are you a bot"], answer: "Honest answer: I'm not a connected AI model like ChatGPT — I'm a built-in helper that understands a wide range of phrases and app questions. That keeps Blossom completely free with nothing to set up! 🐾" },
-  { keywords: ["what is this app", "what is blossom", "what does this app do", "what can this app do", "what does blossom do"], answer: "Blossom is your scrapbook photo journal 🌸 — create journals, fill pages with photos, stickers, text and music, then read them back like a real flip-book, notepad, scrapbook, or diary." },
+  { keywords: ["who are you", "what's your name", "whats your name", "your name"], answer: "I'm Pup Cup! 🐶 I'm Once upon a Tuesday's built-in helper — I can redesign your pages and answer questions about the app." },
+  { keywords: ["are you ai", "are you a real ai", "are you chatgpt", "are you claude", "real ai", "are you a robot", "are you a bot"], answer: "Honest answer: I'm not a connected AI model like ChatGPT — I'm a built-in helper that understands a wide range of phrases and app questions. That keeps Once upon a Tuesday completely free with nothing to set up! 🐾" },
+  { keywords: ["what is this app", "what is blossom", "what does this app do", "what can this app do", "what does blossom do"], answer: "Once upon a Tuesday is your scrapbook photo journal 🌸 — create journals, fill pages with photos, stickers, text and music, then read them back like a real flip-book, notepad, scrapbook, or diary." },
   { keywords: ["new journal", "create a journal", "make a journal", "start a journal", "add a journal"], answer: "Tap the ➕ in the Journals tab, or the pink ➕ on the bottom nav, to start a new journal!" },
   { keywords: ["add a photo", "add photo", "add a picture", "add picture", "upload a photo", "upload photo", "insert a photo", "put a photo"], answer: "Open a page and tap the 📷 Photo button in the toolbar — you can drag, resize, and rotate it once it's on the page." },
   { keywords: ["add a sticker", "add sticker", "put a sticker", "sticker tab", "signature sticker", "emoji sticker"], answer: "Tap the ⭐ Sticker button on a page — you'll find Signature stickers, Emoji, and a Yours tab for your own uploaded images." },
@@ -75,7 +75,7 @@ const FAQ = [
   { keywords: ["page style", "background style", "change background", "page background", "change the page color", "page color"], answer: "Open Curate (tap the page title, or find it in the sidebar on tablets/desktop) and look for \"Page style\" — dotted, lined, whimsical, vintage, grid, or a custom color." },
   { keywords: ["mood picker", "add a mood", "page mood"], answer: "In Curate, there's a Mood row with little emoji you can pick to capture how you were feeling that day." },
   { keywords: ["add tags", "add location", "page tags", "page location"], answer: "In Curate you'll find Location and Tags fields — totally optional, but nice for remembering where you were and what the day was about." },
-  { keywords: ["change the theme", "glam mode", "midnight mode", "change my vibe", "change vibe", "dark mode", "switch theme"], answer: "Head to Profile → Theme to switch between Blossom, Glam Mode, and Midnight Mode any time!" },
+  { keywords: ["change the theme", "glam mode", "midnight mode", "change my vibe", "change vibe", "dark mode", "switch theme"], answer: "Head to Profile → Theme to switch your look any time!" },
   { keywords: ["add music", "add spotify", "add a song", "spotify link", "play music", "background music", "add a spotify"], answer: "Open a page, tap the 🎵 music icon (or the page title on phones), and you can pick a vibe, upload a clip, or paste a Spotify link." },
   { keywords: ["spotify not working", "spotify isn't working", "spotify doesn't work", "spotify link not working"], answer: "If it says \"shortened link,\" open that link once in your browser first, then copy the full open.spotify.com address from the address bar and paste that instead — shortened spotify.link URLs can't be read directly." },
   { keywords: ["how do i read", "flip book", "flipbook", "notepad style", "scrapbook style", "diary style", "reading mode", "reading experience"], answer: "Open any journal and tap 📖 Read — pick between Flip Book, Notepad, Scrapbook, or Diary from the icon in the top right!" },
@@ -86,10 +86,11 @@ const FAQ = [
   { keywords: ["delete a journal", "delete journal", "remove a journal"], answer: "Open the journal's ⋯ menu and tap \"Delete journal\" — this permanently removes it and its pages, so it'll ask you to confirm first." },
   { keywords: ["rename a journal", "edit journal title", "change journal name", "rename journal"], answer: "Open the journal's ⋯ menu and tap \"Rename & edit\" to change its title or description." },
   { keywords: ["is my data private", "who can see my", "is this private", "is this public", "is blossom private"], answer: "Totally private — everything lives in your own account and is never shared or public. 🔒" },
+  { keywords: ["what does the name mean", "why once upon a tuesday", "app name", "name of the app"], answer: "\"Once upon a Tuesday\" is just about how ordinary days are still worth keeping — ordinary Tuesdays turned into little story pages." },
   { keywords: ["how do i backup", "how do i back up", "backup my data", "backup my memories", "export my data", "download my data"], answer: "Go to Profile → Backup my memories to download everything as a file you keep safe." },
   { keywords: ["restore from backup", "import my data", "bring back my data", "restore my memories"], answer: "Go to Profile → Restore from backup and choose the backup file you saved earlier." },
   { keywords: ["sync across devices", "another device", "different phone", "same account", "multiple devices"], answer: "Yes! Sign in with the same email on any device and everything syncs automatically through your account." },
-  { keywords: ["work offline", "no internet", "offline mode", "without internet"], answer: "Blossom is a PWA, so it opens instantly and works offline once installed — changes sync back up the next time you're online." },
+  { keywords: ["work offline", "no internet", "offline mode", "without internet"], answer: "Once upon a Tuesday is a PWA, so it opens instantly and works offline once installed — changes sync back up the next time you're online." },
   { keywords: ["add to home screen", "install the app", "install this app", "install blossom", "add to homescreen", "download the app", "get the app"], answer: "On iPhone: open this site in Safari, tap Share, then \"Add to Home Screen.\" On Android/desktop, your browser should offer an \"Install\" option." },
   { keywords: ["erase all data", "delete everything", "wipe my account", "erase my account"], answer: "Profile → Erase all data will permanently delete everything in your account — it'll ask you to confirm since that can't be undone." },
   { keywords: ["sign out", "log out", "logout"], answer: "Go to Profile → Sign out. You can always sign back in with the same email and password." },
@@ -139,7 +140,7 @@ function interpret(rawText) {
   if (HELP_RE.test(text)) {
     return {
       actions: [],
-      reply: "I can redesign your pages or answer questions about Blossom! Try:\n• \"make it pink and dotted\"\n• \"add hearts and a bow\"\n• \"surprise me\"\n• \"how do I add music\"\n• \"how do I create a journal\"",
+      reply: "I can redesign your pages or answer questions about Once upon a Tuesday! Try:\n• \"make it pink and dotted\"\n• \"add hearts and a bow\"\n• \"surprise me\"\n• \"how do I add music\"\n• \"how do I create a journal\"",
     };
   }
 
@@ -261,7 +262,7 @@ function openAssistantChat() {
   document.getElementById("pup-bubble")?.classList.remove("show");
 
   if (!history.length) {
-    history.push({ from: "pup", text: "Ruff! I'm Pup Cup 🐶 I can redesign this page or answer questions about Blossom. What would you like to do?" });
+    history.push({ from: "pup", text: "Ruff! I'm Pup Cup 🐶 I can redesign this page or answer questions about Once upon a Tuesday. What would you like to do?" });
   }
 
   openSheet({

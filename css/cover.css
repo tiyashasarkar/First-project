@@ -1,0 +1,499 @@
+/* ==========================================================================
+   "Once upon a Tuesday" — journal cover landing screen
+   Layout/visuals for the physical-feeling cover; drag/sway/tilt logic
+   lives in js/journal-physics.js, markup in js/screens/cover.js.
+   ========================================================================== */
+
+#cover-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 28%, #fffaf0 0%, #fdf3da 55%, #f6e2b4 100%);
+  transition: opacity 0.45s ease, visibility 0.45s;
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#cover-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.cover-stage {
+  position: relative;
+  width: min(88vw, 58vh, 420px);
+  aspect-ratio: 0.72;
+  perspective: 1800px;
+}
+
+@media (max-height: 520px) {
+  .cover-stage { width: min(78vw, 44vh, 340px); }
+}
+
+.cover-ambient-shadow {
+  position: absolute;
+  left: 6%;
+  right: 4%;
+  bottom: -5%;
+  height: 12%;
+  background: radial-gradient(ellipse, rgba(110, 85, 30, 0.34), transparent 72%);
+  filter: blur(3px);
+}
+
+.journal-cover3d {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform 0.28s ease-out;
+}
+
+/* ---------------------------------------------------------------------- */
+/* The page revealed once the cover opens                                 */
+/* ---------------------------------------------------------------------- */
+
+.jc-page-inside {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px 24px 24px 16px;
+  background: linear-gradient(150deg, #fffbe9 0%, #fff2c2 55%, #ffe89a 100%);
+  box-shadow: 0 12px 30px -12px rgba(120, 95, 40, 0.4) inset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateZ(-1px);
+}
+
+.jc-inside-hint {
+  font-family: var(--font-script);
+  font-size: 24px;
+  color: #b8892c;
+  opacity: 0.75;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Front cover                                                            */
+/* ---------------------------------------------------------------------- */
+
+.jc-front {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px 26px 26px 16px;
+  background: linear-gradient(155deg, #fdf3d3 0%, #f8e5ab 60%, #efd787 100%);
+  box-shadow:
+    0 22px 46px -18px rgba(120, 95, 40, 0.45),
+    0 2px 0 rgba(255, 255, 255, 0.5) inset,
+    0 -12px 22px -14px rgba(120, 95, 40, 0.18) inset;
+  transform-origin: left center;
+  transform: translateZ(0) rotateY(0deg);
+  backface-visibility: hidden;
+  transition: transform 950ms cubic-bezier(0.32, 1.1, 0.38, 1), box-shadow 950ms ease;
+  cursor: pointer;
+  overflow: hidden;
+  user-select: none;
+}
+
+.jc-front.open {
+  transform: translateZ(0) rotateY(-152deg);
+  box-shadow: 40px 12px 55px -20px rgba(0, 0, 0, 0.4);
+}
+
+.jc-paper {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(120, 95, 40, 0.055) 1px, transparent 1px);
+  background-size: 3px 3px;
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.jc-front::after {
+  content: "";
+  position: absolute;
+  right: -3px;
+  top: 2%;
+  bottom: 2%;
+  width: 8px;
+  background: repeating-linear-gradient(180deg, #f3e2ab 0px, #f3e2ab 2px, #e6d18c 2px, #e6d18c 4px);
+  border-radius: 0 6px 6px 0;
+  box-shadow: 2px 0 6px rgba(120, 95, 40, 0.2);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Lace column + ribbon (right edge)                                      */
+/* ---------------------------------------------------------------------- */
+
+.jc-lace {
+  position: absolute;
+  right: 6%;
+  top: 3%;
+  bottom: 3%;
+  width: 15%;
+  border-radius: 10px;
+  background: repeating-linear-gradient(45deg, #fffdf5 0 3px, #f2ead4 3px 6px);
+  box-shadow: 0 0 0 1px rgba(200, 180, 120, 0.3) inset, 2px 0 6px rgba(120, 95, 40, 0.12);
+  z-index: 2;
+}
+
+.jc-lace-pattern {
+  position: absolute;
+  inset: 4%;
+  background-image:
+    radial-gradient(circle, transparent 55%, rgba(255, 255, 255, 0.7) 56%),
+    radial-gradient(circle, rgba(205, 184, 132, 0.5) 30%, transparent 31%);
+  background-size: 10px 10px, 10px 10px;
+  background-position: 0 0, 5px 5px;
+  opacity: 0.85;
+}
+
+.jc-ribbon {
+  position: absolute;
+  right: 9.5%;
+  top: 0;
+  bottom: 0;
+  width: 5.5%;
+  background: linear-gradient(90deg, #f6e6b8, #eed890, #f6e6b8);
+  z-index: 1;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Metal clips on the spine edge                                          */
+/* ---------------------------------------------------------------------- */
+
+.jc-clip {
+  position: absolute;
+  left: -6px;
+  width: 22px;
+  z-index: 3;
+  filter: drop-shadow(1px 2px 2px rgba(120, 95, 40, 0.3));
+  pointer-events: none;
+}
+
+.jc-clip-top { top: 5%; }
+.jc-clip-bottom { bottom: 7%; width: 20px; }
+
+/* ---------------------------------------------------------------------- */
+/* Pin + bow cluster (top right)                                          */
+/* ---------------------------------------------------------------------- */
+
+.jc-pin-cluster {
+  position: absolute;
+  right: 22%;
+  top: 3%;
+  width: 18%;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.jc-pin { width: 60%; }
+.jc-bow-knot { width: 78%; margin-top: -8px; filter: drop-shadow(1px 2px 2px rgba(120, 95, 40, 0.25)); }
+
+.jc-pin-cluster .jc-sticker {
+  position: static;
+  width: 38%;
+  margin-top: 2px;
+  pointer-events: auto;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Title stamp card                                                       */
+/* ---------------------------------------------------------------------- */
+
+.jc-title-card {
+  left: 7%;
+  top: 8%;
+  width: 60%;
+  z-index: 3;
+}
+
+.jc-title-frame {
+  position: relative;
+  background: #fdf7e3;
+  border: 2px solid #322d22;
+  border-radius: 2px;
+  padding: 16px 14px 12px;
+  box-shadow: 4px 5px 0 rgba(50, 45, 34, 0.12), 0 6px 16px -6px rgba(120, 95, 40, 0.35);
+}
+
+.jc-title-frame::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border: 1.5px dashed #b8a06a;
+  border-radius: 2px;
+  transform: rotate(2deg);
+  z-index: -1;
+}
+
+.jc-title-flower {
+  position: absolute;
+  top: -16px;
+  left: -12px;
+  width: 32px;
+  transform: rotate(-8deg);
+  filter: drop-shadow(1px 2px 2px rgba(120, 95, 40, 0.25));
+  pointer-events: none;
+}
+
+.jc-title {
+  font-family: var(--font-script);
+  font-size: clamp(22px, 6.2vw, 30px);
+  line-height: 1.15;
+  color: #2e2a22;
+  margin: 0;
+  text-align: center;
+  font-weight: 400;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Headphones + music notes                                               */
+/* ---------------------------------------------------------------------- */
+
+.jc-headphones { right: 30%; top: 21%; width: 15%; }
+.jc-notes { right: 17%; top: 33%; width: 11%; }
+
+/* ---------------------------------------------------------------------- */
+/* Elastic string + hanging charms                                        */
+/* ---------------------------------------------------------------------- */
+
+.jc-elastic {
+  position: absolute;
+  left: 3%;
+  right: 24%;
+  top: 45%;
+  height: 42px;
+  z-index: 5;
+}
+
+.jc-elastic-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 7px;
+  transform: translateY(-50%);
+  background: linear-gradient(180deg, #fffef8, #ece0bc);
+  border-radius: 5px;
+  box-shadow: 0 2px 3px rgba(120, 100, 40, 0.3), 0 -1px 0 rgba(255, 255, 255, 0.7) inset;
+  transition: transform 0.5s cubic-bezier(0.3, 0, 0.2, 1), opacity 0.4s ease;
+}
+
+.jc-elastic.releasing .jc-elastic-band {
+  transform: translateY(-46px) scaleX(0.92);
+  opacity: 0;
+}
+
+.jc-charm {
+  position: absolute;
+  top: 100%;
+  width: 30px;
+  transform-origin: top center;
+  filter: drop-shadow(1px 3px 3px rgba(120, 95, 40, 0.3));
+  animation: charmSway 3.2s ease-in-out infinite;
+  pointer-events: auto;
+}
+
+.jc-charm-1 { left: 10%; animation-duration: 3s; }
+.jc-charm-2 { left: 34%; top: 96%; width: 25px; animation-duration: 3.6s; animation-delay: 0.25s; }
+.jc-charm-3 { left: 56%; animation-duration: 2.8s; animation-delay: 0.45s; }
+
+.jc-charm.pulse { animation: charmPulse 1.1s cubic-bezier(0.36, 0.07, 0.19, 0.97) 1; }
+
+.jc-elastic.releasing .jc-charm { animation: charmYank 0.7s ease-out 1 forwards; }
+
+@keyframes charmSway {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+
+@keyframes charmPulse {
+  0% { transform: rotate(-5deg); }
+  20% { transform: rotate(18deg); }
+  40% { transform: rotate(-14deg); }
+  60% { transform: rotate(9deg); }
+  80% { transform: rotate(-4deg); }
+  100% { transform: rotate(-5deg); }
+}
+
+@keyframes charmYank {
+  0% { transform: translateY(0) rotate(-5deg); opacity: 1; }
+  40% { transform: translateY(-16px) rotate(16deg); opacity: 1; }
+  100% { transform: translateY(-48px) rotate(6deg); opacity: 0; }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Draggable scrapbook stickers                                           */
+/* ---------------------------------------------------------------------- */
+
+.jc-sticker {
+  position: absolute;
+  --drag-x: 0px;
+  --drag-y: 0px;
+  --drag-rot: 0deg;
+  transform: translate(var(--drag-x), var(--drag-y)) rotate(var(--drag-rot));
+  transition: transform 90ms ease-out;
+  cursor: grab;
+  z-index: 3;
+  touch-action: none;
+}
+
+.jc-sticker.dragging {
+  transition: transform 40ms linear;
+  cursor: grabbing;
+  z-index: 40;
+}
+
+.jc-sticker.dragging .jc-sticker-inner {
+  box-shadow: 6px 12px 18px -4px rgba(120, 95, 40, 0.45);
+}
+
+.jc-sticker.settling {
+  transition: transform 550ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.jc-sticker-inner {
+  display: block;
+  width: 100%;
+  transform: rotate(var(--rest-rot, 0deg));
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  user-select: none;
+}
+
+.jc-sticker:hover .jc-sticker-inner {
+  transform: rotate(calc(var(--rest-rot, 0deg) * 0.35)) scale(1.08);
+}
+
+.jc-sticker svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+}
+
+.jc-cherries { left: 6%; top: 62%; width: 15%; }
+.jc-cherries .jc-sticker-inner { --rest-rot: -10deg; }
+
+.jc-heart { left: 34%; top: 65%; width: 19%; z-index: 2; }
+.jc-heart .jc-sticker-inner { --rest-rot: 4deg; }
+
+.jc-mushroom { left: 8%; top: 79%; width: 21%; }
+.jc-mushroom .jc-sticker-inner { --rest-rot: -3deg; }
+
+.jc-daisy { width: 9%; }
+.jc-daisy-1 { right: 8%; top: 70%; }
+.jc-daisy-1 .jc-sticker-inner { --rest-rot: 8deg; }
+.jc-daisy-2 { right: 21%; top: 87%; width: 8%; }
+.jc-daisy-2 .jc-sticker-inner { --rest-rot: -12deg; }
+
+.jc-headphones.jc-sticker .jc-sticker-inner { --rest-rot: 6deg; }
+.jc-notes.jc-sticker .jc-sticker-inner { --rest-rot: -8deg; }
+.jc-pin-star .jc-sticker-inner { --rest-rot: 10deg; }
+.jc-title-card .jc-sticker-inner { --rest-rot: -3deg; }
+
+.jc-washi {
+  position: absolute;
+  left: 22%;
+  top: 76%;
+  width: 15%;
+  height: 13px;
+  background: repeating-linear-gradient(45deg, #f4ecd2 0 6px, #ecdfb3 6px 12px);
+  opacity: 0.85;
+  transform: rotate(-8deg);
+  box-shadow: 0 1px 2px rgba(120, 95, 40, 0.2);
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Background sparkle/star doodles                                        */
+/* ---------------------------------------------------------------------- */
+
+.jc-doodles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.jc-doodle {
+  position: absolute;
+  opacity: 0.8;
+  animation: doodleTwinkle 2.6s ease-in-out infinite;
+}
+
+.jc-doodle:nth-child(2n) { animation-delay: 0.8s; }
+.jc-doodle:nth-child(3n) { animation-delay: 1.4s; }
+
+@keyframes doodleTwinkle {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+/* ---------------------------------------------------------------------- */
+/* "Tap to open" hint + opening-state locking                             */
+/* ---------------------------------------------------------------------- */
+
+.jc-open-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  transform: translateX(-50%);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  letter-spacing: 0.05em;
+  color: rgba(90, 70, 30, 0.55);
+  text-transform: uppercase;
+  z-index: 3;
+  pointer-events: none;
+  animation: hintPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+#cover-screen.is-opening .jc-open-hint { opacity: 0; transition: opacity 0.2s ease; }
+#cover-screen.is-opening .jc-front { pointer-events: none; }
+#cover-screen.is-opening .jc-doodle { animation-play-state: paused; }
+
+/* ---------------------------------------------------------------------- */
+/* Reduced motion: calmer, near-instant version                           */
+/* ---------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .journal-cover3d { transition: none; transform: none; }
+  .jc-charm,
+  .jc-doodle,
+  .jc-open-hint {
+    animation: none !important;
+  }
+  .jc-front {
+    transition: opacity 0.3s ease;
+  }
+  .jc-front.open {
+    transform: translateZ(0) rotateY(0deg);
+    opacity: 0;
+  }
+  .jc-elastic-band {
+    transition: opacity 0.3s ease;
+  }
+  .jc-elastic.releasing .jc-elastic-band {
+    transform: translateY(-50%);
+    opacity: 0;
+  }
+  .jc-sticker,
+  .jc-sticker-inner {
+    transition: none;
+  }
+}

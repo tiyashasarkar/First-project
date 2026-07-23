@@ -1,13 +1,13 @@
 {
-  "name": "Blossom — a photo journal",
-  "short_name": "Blossom",
-  "description": "A soft, cute scrapbook-style photo journal. Where memories become pages.",
+  "name": "Once upon a Tuesday",
+  "short_name": "Once upon a Tuesday",
+  "description": "A handmade-feeling scrapbook-style photo journal. Where memories become pages.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#fbe4ec",
-  "theme_color": "#fbe4ec",
+  "background_color": "#fdf3da",
+  "theme_color": "#fdf3da",
   "icons": [
     { "src": "icons/icon-72.png", "sizes": "72x72", "type": "image/png" },
     { "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" },
