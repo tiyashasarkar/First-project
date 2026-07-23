@@ -127,11 +127,16 @@ html,
 body {
   height: 100%;
   overscroll-behavior-y: none;
+  /* Fixed, never theme-driven: this is the raw page background, only ever
+     glimpsed for a moment during a screen transition or sampled by
+     mobile Safari to tint its own address/tab bar chrome. It must never
+     flash whatever color a previously-picked theme (e.g. Barbie's pink)
+     left behind -- always the same safe warm cream regardless of theme. */
+  background: #fff8f3;
 }
 
 body {
   margin: 0;
-  background: var(--cream);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 16px;
