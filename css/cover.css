@@ -2,16 +2,20 @@
    "Once upon a Tuesday" — journal cover landing screen
 
    The cover is your actual photo (icons/cover/journal-cover*.jpg), shown
-   in full and never redrawn. It's split into a left and right flap (each
-   its own crop of the same photo) so it can swing open like a real
-   double cover. Charms/elastic/stickers are further crops of that same
-   photo, positioned in exact pixel-accurate registration on top of where
-   they already sit, so at rest the page is indistinguishable from the
-   plain photo. Deliberately avoids CSS mask-image (inconsistent across
-   browsers) and any continuously-running transform on the photo crops —
-   everything sits perfectly still, in perfect registration, until it's
-   actually touched. Layout/visuals live here; drag/sway/tilt/elastic
-   logic lives in js/journal-physics.js; markup in js/screens/cover.js.
+   in full and never redrawn. The real photo isn't two equal covers — it's
+   one large paper front cover (~70% of the width) and a narrower lace
+   spine strip (~30%) — so that's how it splits: one big flap that hinges
+   open on its left edge, and a spine that never moves, because spines
+   don't open in real life. Charms/elastic/stickers are further crops of
+   that same photo, positioned in exact pixel-accurate registration on top
+   of where they already sit, so at rest the page is indistinguishable
+   from the plain photo. Interactive pieces are clipped to their real
+   die-cut silhouette (clip-path polygon) instead of a plain rectangle —
+   deliberately avoids CSS mask-image (inconsistent across browsers) and
+   any continuously-running transform on the photo crops — everything
+   sits perfectly still, in perfect registration, until it's actually
+   touched. Layout/visuals live here; drag/sway/tilt/elastic logic lives
+   in js/journal-physics.js; markup in js/screens/cover.js.
    ========================================================================== */
 
 #cover-screen {
@@ -92,7 +96,7 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* The inside page — baby-yellow felt, revealed once both flaps open      */
+/* The inside page — baby-yellow felt, revealed once the cover opens      */
 /* ---------------------------------------------------------------------- */
 
 .jc-inner-page {
@@ -120,7 +124,7 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* Front cover flaps — your actual photo, split down the middle           */
+/* Front cover flap — the large paper panel, hinged on its left edge      */
 /* ---------------------------------------------------------------------- */
 
 .jc-flap {
@@ -135,9 +139,10 @@
   user-select: none;
 }
 
-.jc-flap-left {
+.jc-cover-flap {
   left: 0;
-  width: 49.94%;
+  width: 70.06%;
+  z-index: 4;
   border-radius: 14px 0 0 14px;
   transform-origin: left center;
   transform: translateZ(0) rotateY(0deg);
@@ -145,23 +150,27 @@
   box-shadow: -4px 0 20px -10px rgba(90, 70, 25, 0.4) inset, 0 22px 46px -18px rgba(30, 20, 5, 0.5);
 }
 
-.jc-flap-right {
-  right: 0;
-  width: 50.06%;
-  border-radius: 0 22px 22px 0;
-  transform-origin: right center;
-  transform: translateZ(0) rotateY(0deg);
-  box-shadow: 4px 0 20px -10px rgba(90, 70, 25, 0.4) inset, 0 22px 46px -18px rgba(30, 20, 5, 0.5);
-}
-
-.jc-flap-left.open {
-  transform: translateZ(0) rotateY(-128deg);
+.jc-cover-flap.open {
+  transform: translateZ(0) rotateY(-148deg);
   box-shadow: -30px 14px 50px -20px rgba(0, 0, 0, 0.45);
 }
 
-.jc-flap-right.open {
-  transform: translateZ(0) rotateY(128deg);
-  box-shadow: 30px 14px 50px -20px rgba(0, 0, 0, 0.45);
+/* ---------------------------------------------------------------------- */
+/* Spine strip — the narrow lace-wrapped binding. A real spine never      */
+/* opens, so this piece just sits fixed in place the whole time.          */
+/* ---------------------------------------------------------------------- */
+
+.jc-spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 29.94%;
+  z-index: 2;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border-radius: 0 22px 22px 0;
+  box-shadow: 4px 0 20px -10px rgba(90, 70, 25, 0.4) inset, 0 22px 46px -18px rgba(30, 20, 5, 0.5);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -184,56 +193,27 @@
   pointer-events: none;
 }
 
+/* A real elastic band wrapped snugly around a thick journal barely
+   stretches when you tug at what's hanging from it — the charms swing,
+   the string doesn't. So the band itself never transforms at all; only
+   its cursor and a very subtle grab-highlight change with interaction. */
 .jc-elastic {
   position: absolute;
   pointer-events: auto;
-  --elastic-drag: 0px;
-  transform: translateY(var(--elastic-drag));
   cursor: grab;
-  transition: transform 0.5s cubic-bezier(0.3, 0, 0.2, 1), opacity 0.4s ease;
-  animation: elasticHint 5s ease-in-out infinite;
+  filter: brightness(1);
+  transition: filter 0.3s ease;
 }
 
 .jc-elastic.dragging {
   cursor: grabbing;
-  transition: none;
-  animation: none;
+  filter: brightness(0.94);
 }
 
 .jc-elastic-img {
   display: block;
   width: 100%;
   height: 100%;
-}
-
-.jc-elastic.dragging .jc-elastic-img {
-  transform: scaleY(1.35);
-}
-
-.jc-elastic.releasing {
-  animation: none;
-  transform: translateY(-52px) scaleX(0.9);
-  opacity: 0;
-  transition: transform 0.6s cubic-bezier(0.25, 0.1, 0.2, 1), opacity 0.5s ease 0.1s;
-}
-
-@keyframes elasticHint {
-  0%, 40%, 100% { transform: translateY(var(--elastic-drag)); }
-  20% { transform: translateY(calc(var(--elastic-drag) - 5px)); }
-}
-
-/* The bow sits right beside the elastic, so it gets its own little wobble
-   whenever the string is touched or released — a real bow tied that
-   close to the string would catch some of that motion too. */
-#jc-piece-bow.wobble .jc-sticker-inner {
-  animation: bowWobble 0.65s ease;
-}
-
-@keyframes bowWobble {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-5deg); }
-  55% { transform: rotate(3deg); }
-  80% { transform: rotate(-1.5deg); }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -354,24 +334,18 @@
 
 @media (prefers-reduced-motion: reduce) {
   .journal-cover3d { transition: none; transform: none; }
-  .jc-elastic,
   .jc-open-hint {
     animation: none !important;
   }
   .jc-flap {
     transition: opacity 0.3s ease;
   }
-  .jc-flap-left.open,
-  .jc-flap-right.open {
+  .jc-cover-flap.open {
     transform: translateZ(0) rotateY(0deg);
     opacity: 0;
   }
   .jc-elastic {
     transition: opacity 0.3s ease;
-  }
-  .jc-elastic.releasing {
-    transform: none;
-    opacity: 0;
   }
   .jc-overlay {
     transition: opacity 0.3s ease;
