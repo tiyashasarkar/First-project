@@ -815,6 +815,13 @@ a {
   font-size: 22px;
   flex-shrink: 0;
   background: var(--powder-pink);
+  overflow: hidden;
+}
+
+.template-card .ic img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .template-card .tc-title {
@@ -1012,10 +1019,36 @@ a {
   position: fixed;
   inset: 0;
   z-index: 340;
-  background: var(--cream);
+  /* Same fixed baby-yellow look as the sign-in screen, deliberately kept
+     separate from whichever in-app theme ends up chosen — this greets
+     every login, before any theme is even applied. */
+  background: linear-gradient(150deg, #fffbe9 0%, #fff2c2 55%, #ffe89a 100%);
   display: none;
   flex-direction: column;
   padding: calc(var(--safe-top) + 28px) 24px calc(var(--safe-bottom) + 24px);
+}
+
+#mode-picker .mode-card {
+  background: #fffdf5;
+  border-color: #ffe089;
+}
+
+#mode-picker .mode-card.selected {
+  border-color: #f0b93a;
+}
+
+#mode-picker .mc-check {
+  border-color: #ffe089;
+}
+
+#mode-picker .mode-card.selected .mc-check {
+  background: #f4a83a;
+  border-color: #f4a83a;
+}
+
+#mode-picker #mode-continue {
+  background: linear-gradient(135deg, #ffcf5c 0%, #f4a83a 100%);
+  box-shadow: 0 10px 24px -8px rgba(214, 152, 20, 0.45);
 }
 
 #mode-picker.active {
