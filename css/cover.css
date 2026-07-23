@@ -1,23 +1,22 @@
 /* ==========================================================================
    "Once upon a Tuesday" — journal cover landing screen
 
-   The cover is your actual photo (icons/cover/journal-cover*.jpg), shown
-   in full and never redrawn — only cropped, non-destructively, to trim the
-   plain fabric background around it (never the journal itself). The real
-   photo isn't two equal covers — it's one large paper front cover (~70%
-   of the width) and a narrower lace spine strip (~30%) — so that's how it
-   splits, and both pieces open like real double doors: the cover swings
-   to its side on a left-edge hinge, the spine swings to its side on a
-   right-edge hinge. The elastic band and its charms are left exactly as
-   photographed, baked into the flap/spine art (they're static hardware,
-   not something you tug on) — only the paper stickers are still separate,
-   draggable pieces, each clipped to its real die-cut silhouette (clip-path
-   polygon) instead of a plain rectangle. Deliberately avoids CSS
-   mask-image (inconsistent across browsers) and any continuously-running
-   transform on the photo crops — everything sits perfectly still, in
-   perfect registration, until it's actually touched. Layout/visuals live
-   here; drag/tilt logic lives in js/journal-physics.js; markup in
-   js/screens/cover.js.
+   The cover is your actual photo (icons/cover/journal-cover-full.jpg),
+   shown in full and never redrawn — only cropped, non-destructively, to
+   trim the plain fabric background around it (never the journal itself).
+   This is a single static page, not a book that opens: tapping it just
+   hands off to the next screen with the plain fade already built into
+   #cover-screen (see js/app.js), no flap animation. It's still
+   interactive — a cursor-tilt gives it physical depth, and the paper
+   stickers are draggable, each clipped to its real die-cut silhouette
+   (clip-path polygon) instead of a plain rectangle. The elastic band and
+   its charms are left exactly as photographed, baked into the page image,
+   since they're static hardware, not something you tug on. Deliberately
+   avoids CSS mask-image (inconsistent across browsers) and any
+   continuously-running transform on the photo — everything sits
+   perfectly still, in perfect registration, until it's actually touched.
+   Layout/visuals live here; drag/tilt logic lives in
+   js/journal-physics.js; markup in js/screens/cover.js.
    ========================================================================== */
 
 #cover-screen {
@@ -78,90 +77,31 @@
   filter: blur(6px);
 }
 
-.journal-cover3d {
+/* ---------------------------------------------------------------------- */
+/* The page — your real photo, one static piece. Corner radii are         */
+/* percentage-based (not fixed px) so they scale with the page and mask   */
+/* the photo's own naturally-rounded corners, where a sliver of           */
+/* background fabric would otherwise still peek through.                  */
+/* ---------------------------------------------------------------------- */
+
+.jc-page {
   position: absolute;
   inset: 0;
-  transform-style: preserve-3d;
-  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-color: #d8bd6e;
+  border-radius: 15% 6% 6% 15% / 7% 3% 3% 7%;
+  box-shadow: 0 22px 46px -18px rgba(30, 20, 5, 0.5);
+  overflow: hidden;
+  user-select: none;
+  cursor: pointer;
+  transform: translateZ(0) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(1);
   transition: transform 0.28s ease-out;
 }
 
-/* ---------------------------------------------------------------------- */
-/* The inside page — baby-yellow felt, revealed once both flaps open      */
-/* ---------------------------------------------------------------------- */
-
-.jc-inner-page {
-  position: absolute;
-  inset: 0;
-  border-radius: 15% 10% 10% 15% / 7% 7% 7% 7%;
-  background-color: #fdedac;
-  background-image:
-    repeating-radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.55) 0, rgba(255, 255, 255, 0.55) 1px, transparent 1px, transparent 100%),
-    repeating-radial-gradient(circle at 3px 4px, rgba(160, 122, 40, 0.16) 0, rgba(160, 122, 40, 0.16) 1px, transparent 1px, transparent 100%),
-    linear-gradient(160deg, #fff6cf 0%, #ffe9a0 55%, #f9d97c 100%);
-  background-size: 5px 5px, 6px 6px, 100% 100%;
-  box-shadow: 0 12px 34px -12px rgba(120, 95, 40, 0.45) inset;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: translateZ(-1px);
-}
-
-.jc-inside-hint {
-  font-family: var(--font-script);
-  font-size: 24px;
-  color: #a67a1f;
-  opacity: 0.7;
-}
-
-/* ---------------------------------------------------------------------- */
-/* The two flaps — real crops of your photo, split at their real seam.    */
-/* Corner radii are percentage-based (not fixed px) so they scale with    */
-/* the flap and mask the photo's own naturally-rounded corners, where a   */
-/* sliver of background fabric would otherwise peek through.              */
-/* ---------------------------------------------------------------------- */
-
-.jc-flap {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-  backface-visibility: hidden;
-  cursor: pointer;
-  transition: transform 1400ms cubic-bezier(0.45, 0.05, 0.15, 1), box-shadow 1400ms ease;
-  overflow: hidden;
-  user-select: none;
-}
-
-.jc-cover-flap {
-  left: 0;
-  width: 70.06%;
-  z-index: 4;
-  border-radius: 15% 0 0 15% / 7% 0 0 7%;
-  transform-origin: left center;
-  transform: translateZ(0) rotateY(0deg);
-  box-shadow: -4px 0 20px -10px rgba(90, 70, 25, 0.4) inset, 0 22px 46px -18px rgba(30, 20, 5, 0.5);
-}
-
-.jc-cover-flap.open {
-  transform: translateZ(0) rotateY(-148deg);
-  box-shadow: -30px 14px 50px -20px rgba(0, 0, 0, 0.45);
-}
-
-.jc-spine {
-  right: 0;
-  width: 29.94%;
-  z-index: 4;
-  border-radius: 0 20% 20% 0 / 0 9% 9% 0;
-  transform-origin: right center;
-  transform: translateZ(0) rotateY(0deg);
-  box-shadow: 4px 0 20px -10px rgba(90, 70, 25, 0.4) inset, 0 22px 46px -18px rgba(30, 20, 5, 0.5);
-}
-
-.jc-spine.open {
-  transform: translateZ(0) rotateY(148deg);
-  box-shadow: 30px 14px 50px -20px rgba(0, 0, 0, 0.45);
+.jc-page.pressed {
+  transition: transform 0.18s ease;
+  transform: translateZ(0) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(0.97);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -211,7 +151,7 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* "Tap to open" hint + opening-state locking                             */
+/* "Tap to continue" hint                                                 */
 /* ---------------------------------------------------------------------- */
 
 .jc-open-hint {
@@ -239,21 +179,16 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* Reduced motion: calmer, near-instant version                           */
+/* Reduced motion: no tilt, no press animation                            */
 /* ---------------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
-  .journal-cover3d { transition: none; transform: none; }
+  .jc-page {
+    transition: none;
+    transform: none;
+  }
   .jc-open-hint {
     animation: none !important;
-  }
-  .jc-flap {
-    transition: opacity 0.3s ease;
-  }
-  .jc-cover-flap.open,
-  .jc-spine.open {
-    transform: translateZ(0) rotateY(0deg);
-    opacity: 0;
   }
   .jc-sticker,
   .jc-sticker-inner {

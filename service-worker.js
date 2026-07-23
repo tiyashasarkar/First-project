@@ -1,7 +1,7 @@
 // Once upon a Tuesday service worker — caches the app shell so it opens
 // instantly and works offline. Bump CACHE_NAME whenever app files change
 // so old devices pick up the new version.
-const CACHE_NAME = "blossom-v29";
+const CACHE_NAME = "blossom-v30";
 const EXTERNAL_CACHE = "blossom-external-v2";
 
 const APP_SHELL = [
@@ -49,8 +49,7 @@ const APP_SHELL = [
   "./icons/templates/daily.jpg",
   "./icons/templates/travel.jpg",
   "./icons/templates/letter.jpg",
-  "./icons/cover/journal-cover-large.jpg",
-  "./icons/cover/journal-cover-spine.jpg",
+  "./icons/cover/journal-cover-full.jpg",
   "./icons/cover/sticker-headphones.jpg",
   "./icons/cover/sticker-cherries.jpg",
   "./icons/cover/sticker-tape.jpg",
