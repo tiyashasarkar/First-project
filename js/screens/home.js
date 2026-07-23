@@ -1,5 +1,6 @@
 import * as db from "../db.js";
 import { formatDate, timeAgo, escapeHtml, MOODS, thumbPlaceholder } from "../ui.js";
+import { ICONS } from "../icons.js";
 import { openEditor } from "./editor.js";
 import { openCreateFlow } from "./create.js";
 
@@ -54,7 +55,7 @@ export async function renderHome(container) {
     ${
       onThisDay.length
         ? `<div class="section">
-            <div class="section-head"><h2>✨ On This Day</h2></div>
+            <div class="section-head"><h2 class="icon-heading">${ICONS.sparkleHeader} On This Day</h2></div>
             <div class="hscroll" id="otd-scroll"></div>
           </div>`
         : ""
@@ -62,7 +63,7 @@ export async function renderHome(container) {
 
     <div class="section">
       <button class="home-cta fade-in" id="create-cta">
-        <div class="home-cta-icon">📷</div>
+        <div class="home-cta-icon">${ICONS.camera}</div>
         <div class="home-cta-text">
           <div class="home-cta-title">Create a memory</div>
           <div class="home-cta-sub">Turn today's photos into a page</div>
@@ -132,7 +133,7 @@ export async function renderHome(container) {
 
 function renderEmpty() {
   return `<div class="empty-state">
-    <div class="emoji">🌷</div>
+    <div class="emoji">${ICONS.tulip}</div>
     <h3>No memories yet</h3>
     <p>Tap "Create a memory" above to make your first scrapbook page.</p>
   </div>`;

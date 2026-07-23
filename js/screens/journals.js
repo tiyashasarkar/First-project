@@ -1,8 +1,13 @@
 import * as db from "../db.js";
-import { escapeHtml, formatDate, showToast, openSheet, closeSheet, confirmAction } from "../ui.js";
+import { escapeHtml, formatDate, showToast, openSheet, closeSheet, confirmAction, thumbPlaceholder } from "../ui.js";
 import { openEditor, renderStaticPage } from "./editor.js";
 import { openCreateFlow } from "./create.js";
 import { openReader } from "./reader.js";
+import { ICONS } from "../icons.js";
+
+function favIcon(fav) {
+  return fav ? `<span style="color:#e0637f;">${ICONS.heartFilled}</span>` : `<span style="color:var(--ink-soft);">${ICONS.heartOutline}</span>`;
+}
 
 async function coverStyle(journal) {
   if (journal.coverMediaId) {
@@ -30,8 +35,11 @@ async function paintCoverArt(artEl, journal, targetHeight) {
     artEl.appendChild(wrap);
     renderStaticPage(inner, journal.cover, urlCache);
     inner.style.transform = `translate(-50%, -50%) scale(${targetHeight / 507})`;
-  } else {
+  } else if (journal.coverMediaId) {
     artEl.style.cssText += (await coverStyle(journal)) + ";background-size:cover;background-position:center;";
+  } else {
+    artEl.style.cssText += `background:${journal.coverColor || "linear-gradient(145deg,#f6c9d8,#d98fac)"};`;
+    artEl.insertAdjacentHTML("beforeend", thumbPlaceholder(journal.id));
   }
 }
 
@@ -52,7 +60,7 @@ export async function renderJournals(container) {
     ${
       journals.length
         ? `<div class="journal-grid" id="journal-grid"></div>`
-        : `<div class="empty-state"><div class="emoji">📔</div><h3>No journals yet</h3><p>Create one to start collecting your pages together.</p></div>`
+        : `<div class="empty-state"><div class="emoji">${ICONS.openBook}</div><h3>No journals yet</h3><p>Create one to start collecting your pages together.</p></div>`
     }
   `;
 
@@ -69,7 +77,7 @@ async function journalCoverEl(journal) {
   el.className = "journal-cover fade-in";
   el.innerHTML = `
     <div class="art">
-      <div class="fav">${journal.favorite ? "💗" : "🤍"}</div>
+      <div class="fav">${favIcon(journal.favorite)}</div>
     </div>
     <div class="info">
       <div class="title">${escapeHtml(journal.title)}</div>
@@ -82,7 +90,7 @@ async function journalCoverEl(journal) {
     e.stopPropagation();
     journal.favorite = !journal.favorite;
     await db.put("journals", journal);
-    el.querySelector(".fav").textContent = journal.favorite ? "💗" : "🤍";
+    el.querySelector(".fav").innerHTML = favIcon(journal.favorite);
   });
   return el;
 }
@@ -132,7 +140,7 @@ export async function renderJournalDetail(container, journalId) {
         <button class="icon-btn" id="jd-back" style="background:rgba(255,255,255,.85);"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
         <button class="icon-btn" id="jd-menu" style="background:rgba(255,255,255,.85);"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg></button>
       </div>
-      <button class="jd-curate-btn" id="jd-curate" style="z-index:2;">🎨 <span>Curate cover</span></button>
+      <button class="jd-curate-btn" id="jd-curate" style="z-index:2;">${ICONS.palette} <span>Curate cover</span></button>
       <div style="position:absolute;left:20px;right:20px;bottom:16px;color:white;z-index:2;">
         <h1 style="color:white;font-size:24px;">${escapeHtml(journal.title)}</h1>
         <div style="font-size:12.5px;opacity:.9;margin-top:3px;">${pages.length} page${pages.length === 1 ? "" : "s"}${journal.description ? " · " + escapeHtml(journal.description) : ""}</div>
@@ -141,12 +149,12 @@ export async function renderJournalDetail(container, journalId) {
     <div class="screen-scroll" style="flex:1;">
       <div class="section" style="padding-top:18px;display:flex;gap:10px;">
         <button class="btn btn-primary" style="flex:1;" id="jd-add-page">+ Add a page</button>
-        ${pages.length ? `<button class="btn btn-secondary" style="flex:1;" id="jd-read">📖 Read</button>` : ""}
+        ${pages.length ? `<button class="btn btn-secondary" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;" id="jd-read">${ICONS.openBook} Read</button>` : ""}
       </div>
       ${
         pages.length
           ? `<div class="journal-grid" id="jd-grid" style="grid-template-columns:1fr 1fr;"></div>`
-          : `<div class="empty-state"><div class="emoji">🌿</div><h3>This journal is empty</h3><p>Add your first page to get started.</p></div>`
+          : `<div class="empty-state"><div class="emoji">${ICONS.leaf}</div><h3>This journal is empty</h3><p>Add your first page to get started.</p></div>`
       }
     </div>
   `;
@@ -171,12 +179,19 @@ async function pageThumbEl(page) {
   const el = document.createElement("div");
   el.className = "journal-cover fade-in";
   let style = "background:var(--peach)";
+  let hasPhoto = false;
   if (page.thumbnailMediaId) {
     const url = await db.getMediaURL(page.thumbnailMediaId);
-    if (url) style = `background-image:url('${url}');background-size:cover;background-position:center;`;
+    if (url) {
+      style = `background-image:url('${url}');background-size:cover;background-position:center;`;
+      hasPhoto = true;
+    }
   }
   el.innerHTML = `
-    <div class="art" style="${style}"><div class="fav" style="background:rgba(255,255,255,.7);">${page.mood || "📝"}</div></div>
+    <div class="art" style="${style}">
+      ${hasPhoto ? "" : thumbPlaceholder(page.id)}
+      <div class="fav" style="background:rgba(255,255,255,.7);">${page.mood || ICONS.penNote}</div>
+    </div>
     <div class="info">
       <div class="title">${escapeHtml(page.title || "Untitled")}</div>
       <div class="sub">${formatDate(page.dateISO || page.createdAt)}</div>
@@ -196,7 +211,7 @@ function openJournalMenu(journal, container, journalId) {
           <div class="label">Rename & edit</div>
         </button>
         <button class="settings-row" id="jm-fav" style="width:100%;background:none;border:none;text-align:left;">
-          <div class="si">${journal.favorite ? "💗" : "🤍"}</div>
+          <div class="si">${favIcon(journal.favorite)}</div>
           <div class="label">${journal.favorite ? "Remove from favorites" : "Add to favorites"}</div>
         </button>
         <button class="settings-row" id="jm-archive" style="width:100%;background:none;border:none;text-align:left;">

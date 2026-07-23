@@ -1,7 +1,7 @@
 // Blossom service worker — caches the app shell so it opens instantly
 // and works offline. Bump CACHE_NAME whenever app files change so old
 // devices pick up the new version.
-const CACHE_NAME = "blossom-v22";
+const CACHE_NAME = "blossom-v23";
 const EXTERNAL_CACHE = "blossom-external-v2";
 
 const APP_SHELL = [
@@ -15,6 +15,7 @@ const APP_SHELL = [
   "./js/firebase.js",
   "./js/firebase-config.js",
   "./js/ui.js",
+  "./js/icons.js",
   "./js/theme.js",
   "./js/mascot.js",
   "./js/assistant.js",
@@ -42,6 +43,7 @@ const APP_SHELL = [
   "./icons/icon-512.png",
   "./icons/templates/blank.jpg",
   "./icons/templates/photodump.jpg",
+  "./icons/templates/daily.jpg",
   "./icons/templates/travel.jpg",
   "./icons/templates/letter.jpg",
   "./icons/bob.png",

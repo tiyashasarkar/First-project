@@ -3,6 +3,7 @@ import { auth } from "../firebase.js";
 import { showToast, confirmAction, openSheet, closeSheet, escapeHtml } from "../ui.js";
 import { THEMES, getTheme, setTheme } from "../theme.js";
 import { mountMascot } from "../mascot.js";
+import { ICONS } from "../icons.js";
 
 async function getProfileSettings() {
   return (await db.get("settings", "profile")) || { id: "profile" };
@@ -45,7 +46,7 @@ export async function renderProfile(container) {
       <div class="profile-head">
         <div class="profile-avatar-wrap">
           <button class="profile-avatar" id="pf-avatar" aria-label="Change profile picture">
-            ${avatarUrl ? `<img src="${avatarUrl}" alt="" />` : "🌸"}
+            ${avatarUrl ? `<img src="${avatarUrl}" alt="" />` : ICONS.blossomMonogram}
           </button>
           <div class="profile-avatar-badge"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13.5" r="3.2"/></svg></div>
         </div>
@@ -101,7 +102,7 @@ export async function renderProfile(container) {
 
       <div class="section" style="padding:26px 0;text-align:center;">
         <div style="font-family:var(--font-script);color:var(--dusty-rose);font-size:22px;">where memories become pages</div>
-        <div style="font-size:11.5px;color:var(--ink-soft);margin-top:4px;">Blossom v1.0 · made with 🎀</div>
+        <div class="profile-foot" style="font-size:11.5px;color:var(--ink-soft);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:4px;">Blossom v1.0 · made with <span class="profile-foot-bow">${ICONS.bow}</span></div>
       </div>
     </div>
   `;

@@ -9,15 +9,16 @@ import * as db from "../db.js";
 import { renderStaticPage } from "./editor.js";
 import { openSheet, closeSheet, showToast, escapeHtml } from "../ui.js";
 import { setMascotVisible } from "../mascot.js";
+import { ICONS } from "../icons.js";
 
 const PAGE_W = 380;
 const PAGE_H = 507;
 
 const READER_STYLES = [
-  { id: "book", label: "Flip Book", icon: "📖", axis: "Y" },
-  { id: "notepad", label: "Notepad", icon: "🗒️", axis: "X" },
-  { id: "scrapbook", label: "Scrapbook", icon: "📔", axis: "Y" },
-  { id: "diary", label: "Diary", icon: "🔐", axis: "Y" },
+  { id: "book", label: "Flip Book", icon: ICONS.openBook, axis: "Y" },
+  { id: "notepad", label: "Notepad", icon: ICONS.notepadSpiral, axis: "X" },
+  { id: "scrapbook", label: "Scrapbook", icon: ICONS.scrapbookStack, axis: "Y" },
+  { id: "diary", label: "Diary", icon: ICONS.lock, axis: "Y" },
 ];
 
 let state = null;
