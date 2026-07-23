@@ -15,7 +15,7 @@ export function renderModePicker(container, currentThemeId, onDone) {
     const card = document.createElement("button");
     card.className = "mode-card" + (t.id === selected ? " selected" : "");
     card.innerHTML = `
-      <div class="mc-emoji">${t.emoji}</div>
+      <div class="mc-emoji">${t.image ? `<img src="${t.image}" alt="${t.label}" />` : t.emoji}</div>
       <div>
         <div class="mc-title">${t.label}</div>
         <div class="mc-tag">${t.tagline}</div>

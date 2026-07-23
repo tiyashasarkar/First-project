@@ -2,10 +2,15 @@
 // synced to the account) — same pattern as the onboarding-seen flag.
 import * as db from "./db.js";
 
+// Each theme's `image` is what shows in its round icon everywhere a theme
+// is listed (the post-login picker, Profile's "Theme" row, and Profile's
+// theme-switcher sheet). Leave it null to fall back to `emoji`, or set it
+// to any image path/URL (e.g. "icons/themes/glam.jpg") to use a picture
+// instead — no other code needs to change.
 export const THEMES = [
-  { id: "blossom", label: "Blossom", tagline: "soft & sweet", emoji: "🌸", swatches: ["#f6c9d8", "#fbe4ec", "#d98fac"] },
-  { id: "glam", label: "Glam Mode", tagline: "bright & bold", emoji: "💗", swatches: ["#f70071", "#ff5aa4", "#ffc0dc"] },
-  { id: "midnight", label: "Midnight Mode", tagline: "dark & dramatic", emoji: "🦇", swatches: ["#0f1226", "#232a4d", "#d9a54e"] },
+  { id: "blossom", label: "Blossom", tagline: "soft & sweet", emoji: "🌸", image: null, swatches: ["#f6c9d8", "#fbe4ec", "#d98fac"] },
+  { id: "glam", label: "Glam Mode", tagline: "bright & bold", emoji: "💗", image: null, swatches: ["#f70071", "#ff5aa4", "#ffc0dc"] },
+  { id: "midnight", label: "Midnight Mode", tagline: "dark & dramatic", emoji: "🦇", image: null, swatches: ["#0f1226", "#232a4d", "#d9a54e"] },
 ];
 
 export function applyTheme(themeId, { animate = false } = {}) {

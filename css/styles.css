@@ -1105,6 +1105,13 @@ a {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.mode-card .mc-emoji img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .mode-card .mc-title {
@@ -2316,6 +2323,13 @@ button.settings-row:active {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.settings-row .si img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .settings-row .si svg {
