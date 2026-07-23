@@ -1,70 +1,92 @@
 // The very first thing anyone sees: your actual handmade journal cover
 // photo, lying on the screen. The photo itself is never redrawn or
-// replaced — every pixel shown is a crop straight out of the original
-// image (icons/cover/journal-cover.jpg). Interactivity comes from
-// layering small crops of that SAME photo (the charms, the elastic, a
-// handful of stickers) exactly on top of where they already sit in the
-// picture, then animating those layers — so at rest the page looks
-// identical to your photo, and only moves when you actually touch it.
+// replaced. The front cover is split into its own left/right crops of
+// that SAME photo (icons/cover/journal-cover-left.jpg /
+// journal-cover-right.jpg) so it can swing open like a real double cover
+// — left panel opens to the left, right panel opens to the right, hinged
+// at their own outer edges — revealing a baby-yellow felt inside page.
+// Charms, the elastic, and a handful of stickers are separate crops of
+// the same photo layered in exact registration on top of where they
+// already sit, so at rest the page is indistinguishable from the plain
+// photo, and only moves when actually touched.
 //
-// Opening is driven by the elastic string itself: drag it upward past a
-// small threshold and it releases, the charms jiggle, a brief pause
-// settles the motion, then the front cover swings open on a real 3D
-// hinge — slow enough to actually see each stage, handing off to
-// whatever screen comes next.
+// Opening is driven by the elastic string: drag it upward past a small
+// threshold and it releases, the charms jiggle, a brief pause settles
+// that motion, then both cover flaps swing open together — slow enough
+// to see every stage — handing off to whatever screen comes next.
 //
 // Markup/positioning live here + css/cover.css; interaction physics
 // (tilt, charm sway, sticker drag, the elastic gesture) live in
 // ../journal-physics.js.
 import { initTilt, initCharmProximity, wireCharmPulseCleanup, pulseCharms, makeDraggable, makeElasticOpenable, prefersReducedMotion } from "../journal-physics.js";
 
-const IMG = "icons/cover/journal-cover.jpg";
+const IMG_FULL = "icons/cover/journal-cover.jpg";
+const IMG_LEFT = "icons/cover/journal-cover-left.jpg";
+const IMG_RIGHT = "icons/cover/journal-cover-right.jpg";
 
-// Every box below is a pixel-accurate crop from the 835x1208 source photo,
-// converted to percentages so it re-aligns perfectly at any screen size.
-// draggable: true -> a sticker you can pick up and move.
-// charm: true -> hangs from the elastic and sways instead of dragging.
-const PIECES = [
-  { id: "star", src: "icons/cover/sticker-star.jpg", left: 56.53, top: 6.29, width: 8.14, draggable: true },
-  { id: "bow", src: "icons/cover/sticker-bow.jpg", left: 61.68, top: 10.60, width: 27.90, draggable: true },
-  { id: "headphones", src: "icons/cover/sticker-headphones.jpg", left: 51.74, top: 22.52, width: 15.57, draggable: true },
-  { id: "cherries", src: "icons/cover/sticker-cherries.jpg", left: 8.62, top: 52.32, width: 19.88, draggable: true },
-  { id: "heart", src: "icons/cover/sticker-heart.jpg", left: 35.69, top: 59.44, width: 20.12, draggable: true, z: 4 },
-  { id: "tape", src: "icons/cover/sticker-tape.jpg", left: 23.71, top: 66.89, width: 17.25, draggable: true },
-  { id: "mushroom", src: "icons/cover/sticker-mushroom.jpg", left: 12.69, top: 73.84, width: 27.07, draggable: true },
-  { id: "flowers", src: "icons/cover/sticker-flowers.jpg", left: 40.48, top: 73.84, width: 27.54, draggable: true },
-  { id: "coin", src: "icons/cover/charm-coin.jpg", left: 29.70, top: 43.71, width: 11.26, charm: true, swayDuration: 3.1, swayDelay: 0 },
-  { id: "pendant", src: "icons/cover/charm-pendant.jpg", left: 43.47, top: 43.71, width: 16.05, charm: true, swayDuration: 3.6, swayDelay: 0.2 },
-  { id: "shell", src: "icons/cover/charm-shell.jpg", left: 60.24, top: 44.12, width: 8.98, charm: true, swayDuration: 2.8, swayDelay: 0.4 },
+// The source photo is 835x1208, split at x=417 into a 417-wide left flap
+// and a 418-wide right flap. Every position below is a pixel-accurate
+// crop from that photo, converted to a percentage of whichever flap (or
+// the full stage, for charms/elastic) it belongs to, so it re-aligns
+// perfectly at any screen size. Two stickers (the heart doodle and the
+// flowers postcard) straddle the split almost exactly down the middle,
+// so they stay as part of the flap artwork rather than separate
+// draggable pieces — everything else sits cleanly on one side.
+const LEFT_STICKERS = [
+  { id: "cherries", src: "icons/cover/sticker-cherries.jpg", left: 17.27, top: 52.32, width: 39.81 },
+  { id: "mushroom", src: "icons/cover/sticker-mushroom.jpg", left: 25.42, top: 73.84, width: 54.20 },
+  { id: "tape", src: "icons/cover/sticker-tape.jpg", left: 47.48, top: 66.89, width: 34.53 },
+];
+
+const RIGHT_STICKERS = [
+  { id: "headphones", src: "icons/cover/sticker-headphones.jpg", left: 3.59, top: 22.52, width: 31.10 },
+  { id: "star", src: "icons/cover/sticker-star.jpg", left: 13.16, top: 6.29, width: 16.27 },
+  { id: "bow", src: "icons/cover/sticker-bow.jpg", left: 23.44, top: 10.60, width: 55.74 },
+];
+
+// Charms + elastic sit on a full-stage overlay above both flaps (not
+// inside either one) since they hang from the string, not glued to the
+// paper — they fly off during the elastic-release stage, before the
+// flaps themselves ever move.
+const CHARMS = [
+  { id: "coin", src: "icons/cover/charm-coin.jpg", left: 29.70, top: 43.71, width: 11.26 },
+  { id: "pendant", src: "icons/cover/charm-pendant.jpg", left: 43.47, top: 43.71, width: 16.05 },
+  { id: "shell", src: "icons/cover/charm-shell.jpg", left: 60.24, top: 44.12, width: 8.98 },
 ];
 
 const ELASTIC = { left: 0, top: 42.72, width: 100, height: 2.81, src: "icons/cover/elastic-band.jpg" };
+
+function stickerHtml(p) {
+  return `<div class="jc-sticker" id="jc-piece-${p.id}" style="left:${p.left}%;top:${p.top}%;width:${p.width}%;"><div class="jc-sticker-inner"><img src="${p.src}" alt="" draggable="false" /></div></div>`;
+}
 
 export function renderCover(container, onOpened) {
   const reduced = prefersReducedMotion();
   let opened = false;
 
-  const piecesHtml = PIECES.map((p) => {
-    const style = `left:${p.left}%;top:${p.top}%;width:${p.width}%;${p.z ? `z-index:${p.z};` : ""}`;
-    if (p.charm) {
-      return `<div class="jc-charm" id="jc-charm-${p.id}" style="${style}animation-duration:${p.swayDuration}s;animation-delay:${p.swayDelay}s;"><img src="${p.src}" alt="" draggable="false" /></div>`;
-    }
-    return `<div class="jc-sticker" id="jc-piece-${p.id}" style="${style}"><div class="jc-sticker-inner"><img src="${p.src}" alt="" draggable="false" /></div></div>`;
-  }).join("");
+  const leftHtml = LEFT_STICKERS.map(stickerHtml).join("");
+  const rightHtml = RIGHT_STICKERS.map(stickerHtml).join("");
+  const charmsHtml = CHARMS.map((c) => `<div class="jc-charm" id="jc-charm-${c.id}" style="left:${c.left}%;top:${c.top}%;width:${c.width}%;"><img src="${c.src}" alt="" draggable="false" /></div>`).join("");
 
   container.innerHTML = `
-    <div class="cover-backdrop" style="background-image:url('${IMG}');"></div>
+    <div class="cover-backdrop" style="background-image:url('${IMG_FULL}');"></div>
     <div class="cover-stage" id="cover-stage">
       <div class="cover-ambient-shadow"></div>
       <div class="journal-cover3d" id="journal-cover3d">
-        <div class="jc-page-inside">
+        <div class="jc-inner-page">
           <div class="jc-inside-hint">turning the page&hellip;</div>
         </div>
-        <div class="jc-front" id="jc-front" role="button" tabindex="0" aria-label="Open your journal" style="background-image:url('${IMG}');">
+        <div class="jc-flap jc-flap-left" id="jc-flap-left" role="button" tabindex="0" aria-label="Open your journal" style="background-image:url('${IMG_LEFT}');">
+          ${leftHtml}
+        </div>
+        <div class="jc-flap jc-flap-right" id="jc-flap-right" style="background-image:url('${IMG_RIGHT}');">
+          ${rightHtml}
+        </div>
+        <div class="jc-overlay" id="jc-overlay">
           <div class="jc-elastic" id="jc-elastic" style="left:${ELASTIC.left}%;top:${ELASTIC.top}%;width:${ELASTIC.width}%;height:${ELASTIC.height}%;">
             <img class="jc-elastic-img" src="${ELASTIC.src}" alt="" draggable="false" />
           </div>
-          ${piecesHtml}
+          ${charmsHtml}
           <div class="jc-open-hint" id="jc-open-hint">pull the string to open</div>
         </div>
       </div>
@@ -73,10 +95,17 @@ export function renderCover(container, onOpened) {
 
   const stage = container.querySelector("#cover-stage");
   const book = container.querySelector("#journal-cover3d");
-  const front = container.querySelector("#jc-front");
+  const flapLeft = container.querySelector("#jc-flap-left");
+  const flapRight = container.querySelector("#jc-flap-right");
+  const overlay = container.querySelector("#jc-overlay");
   const elastic = container.querySelector("#jc-elastic");
   const hint = container.querySelector("#jc-open-hint");
   const bow = container.querySelector("#jc-piece-bow");
+
+  initTilt(stage, book, { max: 4 });
+  initCharmProximity(elastic, container);
+  wireCharmPulseCleanup(container);
+  container.querySelectorAll(".jc-sticker").forEach((el) => makeDraggable(el));
 
   function reactToElasticTouch() {
     pulseCharms(container);
@@ -91,11 +120,6 @@ export function renderCover(container, onOpened) {
       if (e.animationName === "bowWobble") bow.classList.remove("wobble");
     });
   }
-
-  initTilt(stage, book, { max: 4 });
-  initCharmProximity(elastic, container);
-  wireCharmPulseCleanup(container);
-  container.querySelectorAll(".jc-sticker").forEach((el) => makeDraggable(el));
 
   function finish(onOpenedCb) {
     let done = false;
@@ -120,16 +144,18 @@ export function renderCover(container, onOpened) {
     // Stage 1: the elastic finishes releasing and the charms react.
     elastic.classList.add("releasing");
     reactToElasticTouch();
+    overlay.classList.add("fading");
 
-    // Stage 2: a short natural pause once things have settled, then the
-    // cover itself begins to open — slow and deliberate, not a snap-cut.
+    // Stage 2: a short natural pause once things have settled, then both
+    // cover flaps swing open together — slow and deliberate, not a snap.
     setTimeout(() => {
-      front.classList.add("open");
+      flapLeft.classList.add("open");
+      flapRight.classList.add("open");
     }, 1050);
 
-    front.addEventListener("transitionend", function handler(e) {
+    flapLeft.addEventListener("transitionend", function handler(e) {
       if (e.propertyName !== "transform") return;
-      front.removeEventListener("transitionend", handler);
+      flapLeft.removeEventListener("transitionend", handler);
       doFinish();
     });
     // Safety net in case a transitionend event gets dropped (e.g. tab
@@ -147,13 +173,15 @@ export function renderCover(container, onOpened) {
     onOpen: openJournal,
   });
 
-  // Fallback: tapping anywhere else on the cover also opens it, so the
+  // Fallback: tapping either flap directly also opens it, so the
   // experience never feels like a hidden puzzle.
-  front.addEventListener("click", (e) => {
-    if (e.target.closest(".jc-sticker.dragging, .jc-sticker.settling, .jc-elastic")) return;
+  function handleFlapClick(e) {
+    if (e.target.closest(".jc-sticker.dragging, .jc-sticker.settling")) return;
     openJournal();
-  });
-  front.addEventListener("keydown", (e) => {
+  }
+  flapLeft.addEventListener("click", handleFlapClick);
+  flapRight.addEventListener("click", handleFlapClick);
+  flapLeft.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       openJournal();
