@@ -7,9 +7,16 @@
 // picture, then animating those layers — so at rest the page looks
 // identical to your photo, and only moves when you actually touch it.
 //
+// Opening is driven by the elastic string itself: drag it upward past a
+// small threshold and it releases, the charms jiggle, a brief pause
+// settles the motion, then the front cover swings open on a real 3D
+// hinge — slow enough to actually see each stage, handing off to
+// whatever screen comes next.
+//
 // Markup/positioning live here + css/cover.css; interaction physics
-// (tilt, charm sway, sticker drag) live in ../journal-physics.js.
-import { initTilt, initCharmProximity, wireCharmPulseCleanup, pulseCharms, makeDraggable, prefersReducedMotion } from "../journal-physics.js";
+// (tilt, charm sway, sticker drag, the elastic gesture) live in
+// ../journal-physics.js.
+import { initTilt, initCharmProximity, wireCharmPulseCleanup, pulseCharms, makeDraggable, makeElasticOpenable, prefersReducedMotion } from "../journal-physics.js";
 
 const IMG = "icons/cover/journal-cover.jpg";
 
@@ -46,6 +53,7 @@ export function renderCover(container, onOpened) {
   }).join("");
 
   container.innerHTML = `
+    <div class="cover-backdrop" style="background-image:url('${IMG}');"></div>
     <div class="cover-stage" id="cover-stage">
       <div class="cover-ambient-shadow"></div>
       <div class="journal-cover3d" id="journal-cover3d">
@@ -57,7 +65,7 @@ export function renderCover(container, onOpened) {
             <img class="jc-elastic-img" src="${ELASTIC.src}" alt="" draggable="false" />
           </div>
           ${piecesHtml}
-          <div class="jc-open-hint">tap to open</div>
+          <div class="jc-open-hint" id="jc-open-hint">pull the string to open</div>
         </div>
       </div>
     </div>
@@ -67,45 +75,82 @@ export function renderCover(container, onOpened) {
   const book = container.querySelector("#journal-cover3d");
   const front = container.querySelector("#jc-front");
   const elastic = container.querySelector("#jc-elastic");
+  const hint = container.querySelector("#jc-open-hint");
+  const bow = container.querySelector("#jc-piece-bow");
+
+  function reactToElasticTouch() {
+    pulseCharms(container);
+    if (bow) {
+      bow.classList.remove("wobble");
+      void bow.offsetWidth;
+      bow.classList.add("wobble");
+    }
+  }
+  if (bow) {
+    bow.addEventListener("animationend", (e) => {
+      if (e.animationName === "bowWobble") bow.classList.remove("wobble");
+    });
+  }
 
   initTilt(stage, book, { max: 4 });
   initCharmProximity(elastic, container);
   wireCharmPulseCleanup(container);
   container.querySelectorAll(".jc-sticker").forEach((el) => makeDraggable(el));
 
+  function finish(onOpenedCb) {
+    let done = false;
+    return () => {
+      if (done) return;
+      done = true;
+      onOpenedCb();
+    };
+  }
+
   function openJournal() {
     if (opened) return;
     opened = true;
     container.classList.add("is-opening");
-    pulseCharms(container);
+    const doFinish = finish(onOpened);
 
     if (reduced) {
-      setTimeout(onOpened, 260);
+      setTimeout(doFinish, 260);
       return;
     }
 
+    // Stage 1: the elastic finishes releasing and the charms react.
     elastic.classList.add("releasing");
-    setTimeout(() => front.classList.add("open"), 260);
+    reactToElasticTouch();
 
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      onOpened();
-    };
+    // Stage 2: a short natural pause once things have settled, then the
+    // cover itself begins to open — slow and deliberate, not a snap-cut.
+    setTimeout(() => {
+      front.classList.add("open");
+    }, 1050);
+
     front.addEventListener("transitionend", function handler(e) {
       if (e.propertyName !== "transform") return;
       front.removeEventListener("transitionend", handler);
-      finish();
+      doFinish();
     });
     // Safety net in case a transitionend event gets dropped (e.g. tab
     // backgrounded mid-animation) — never leave the app stuck on the cover.
-    setTimeout(finish, 1600);
+    setTimeout(doFinish, 3400);
   }
 
+  // Primary interaction: drag the elastic string upward to release it.
+  makeElasticOpenable(elastic, {
+    threshold: 44,
+    onDragStart: () => {
+      hint.classList.add("hidden");
+      reactToElasticTouch();
+    },
+    onOpen: openJournal,
+  });
+
+  // Fallback: tapping anywhere else on the cover also opens it, so the
+  // experience never feels like a hidden puzzle.
   front.addEventListener("click", (e) => {
-    // Dragging a sticker shouldn't also trigger the open animation.
-    if (e.target.closest(".jc-sticker.dragging, .jc-sticker.settling")) return;
+    if (e.target.closest(".jc-sticker.dragging, .jc-sticker.settling, .jc-elastic")) return;
     openJournal();
   });
   front.addEventListener("keydown", (e) => {

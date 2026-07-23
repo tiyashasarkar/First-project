@@ -64,6 +64,60 @@ export function wireCharmPulseCleanup(root) {
   });
 }
 
+// Makes the elastic string itself the "open" gesture: drag it upward and,
+// past a small threshold, it releases and the caller's onOpen fires. Released
+// early (before the threshold), it springs back to rest. Tracks vertical
+// movement only, with a little resistance so it feels like real tension
+// rather than a free-floating drag.
+export function makeElasticOpenable(elasticEl, { threshold = 44, onDragStart, onDragProgress, onOpen } = {}) {
+  elasticEl.style.touchAction = "none";
+  let dragging = false, startY = 0, pointerId = null, triggered = false;
+
+  function setDrag(px) {
+    elasticEl.style.setProperty("--elastic-drag", px.toFixed(1) + "px");
+  }
+
+  function onDown(e) {
+    if (triggered || dragging) return;
+    dragging = true;
+    pointerId = e.pointerId;
+    elasticEl.setPointerCapture(pointerId);
+    startY = e.clientY;
+    elasticEl.classList.add("dragging");
+    if (onDragStart) onDragStart();
+  }
+
+  function onMove(e) {
+    if (!dragging || e.pointerId !== pointerId) return;
+    // Only upward movement stretches the string; a little resistance
+    // (sqrt curve) keeps it from feeling like it's flying off too easily.
+    const raw = Math.max(0, startY - e.clientY);
+    const dist = Math.sqrt(raw) * 5.5;
+    setDrag(-Math.min(dist, threshold * 1.4));
+    if (onDragProgress) onDragProgress(Math.min(1, dist / threshold));
+    if (dist >= threshold && !triggered) {
+      triggered = true;
+      dragging = false;
+      try { elasticEl.releasePointerCapture(pointerId); } catch {}
+      elasticEl.classList.remove("dragging");
+      if (onOpen) onOpen();
+    }
+  }
+
+  function onUp(e) {
+    if (!dragging || e.pointerId !== pointerId) return;
+    dragging = false;
+    elasticEl.classList.remove("dragging");
+    setDrag(0);
+    if (onDragProgress) onDragProgress(0);
+  }
+
+  elasticEl.addEventListener("pointerdown", onDown);
+  elasticEl.addEventListener("pointermove", onMove);
+  elasticEl.addEventListener("pointerup", onUp);
+  elasticEl.addEventListener("pointercancel", onUp);
+}
+
 // Makes an element pick-up-and-draggable with a paper "peel" feel: it
 // tracks the pointer with a slight smoothing lag (a short CSS transition
 // left running during the drag itself), lifts with rotation + scale, and
