@@ -284,6 +284,19 @@ a {
   font-size: 21px;
 }
 
+.icon-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.icon-heading svg {
+  width: 19px;
+  height: 19px;
+  color: var(--dusty-rose);
+  flex-shrink: 0;
+}
+
 .section-head .link {
   font-size: 13px;
   font-weight: 600;
@@ -389,6 +402,12 @@ a {
   font-size: 15.5px;
   letter-spacing: 0.01em;
   transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+}
+
+.btn svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
 }
 
 .btn:active {
@@ -620,6 +639,11 @@ a {
   z-index: 1;
 }
 
+.journal-cover .art .fav svg {
+  width: 14px;
+  height: 14px;
+}
+
 .journal-cover .info {
   background: var(--warm-white);
   padding: 10px 12px 12px;
@@ -651,6 +675,12 @@ a {
   transform: scale(0.95);
 }
 
+.jd-curate-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 .journal-cover .info .title {
   font-family: var(--font-display);
   font-weight: 600;
@@ -676,6 +706,12 @@ a {
 .empty-state .emoji {
   font-size: 40px;
   margin-bottom: 10px;
+}
+
+.empty-state .emoji svg {
+  width: 40px;
+  height: 40px;
+  color: var(--dusty-rose);
 }
 
 .empty-state h3 {
@@ -860,6 +896,12 @@ a {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.template-card .ic svg {
+  width: 24px;
+  height: 24px;
+  color: var(--mauve-dark);
 }
 
 .template-card .tc-title {
@@ -1138,7 +1180,7 @@ a {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--blush);
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1353,6 +1395,16 @@ a {
   font-weight: 700;
   color: var(--dusty-rose);
   margin-top: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.ed-curate-hint svg {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
 }
 
 @media (min-width: 860px) {
@@ -1688,6 +1740,27 @@ a {
   animation: mascotPulse 1.2s ease-in-out infinite;
 }
 
+.music-toggle-pill .mtp-icon svg {
+  width: 11px;
+  height: 11px;
+}
+
+.mtp-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mtp-note {
+  display: inline-flex;
+  color: var(--dusty-rose);
+}
+
+.mtp-note svg {
+  width: 12px;
+  height: 12px;
+}
+
 .vibe-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1731,6 +1804,17 @@ a {
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 8px;
+}
+
+.inline-icon {
+  display: inline-flex;
+  vertical-align: -2px;
+  color: var(--dusty-rose);
+}
+
+.inline-icon svg {
+  width: 13px;
+  height: 13px;
 }
 
 .recent-color-swatch {
@@ -2372,6 +2456,13 @@ button.settings-row:active {
   object-position: center;
 }
 
+/* The Theme row's icon shows the active theme's picture/emoji, so it gets
+   a plain white circle instead of the usual pink chip — keeps the image
+   readable regardless of which theme is active. */
+#pf-theme .si {
+  background: #fff;
+}
+
 .settings-row .si svg {
   width: 18px;
   height: 18px;
@@ -2465,6 +2556,22 @@ button.settings-row:active {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.profile-avatar svg {
+  width: 30px;
+  height: 30px;
+  color: #fff;
+}
+
+.profile-foot-bow {
+  display: inline-flex;
+}
+
+.profile-foot-bow svg {
+  width: 13px;
+  height: 13px;
+  color: var(--dusty-rose);
 }
 
 .profile-avatar-badge {
@@ -3610,6 +3717,12 @@ html.theme-transitioning .sheet {
   font-size: 30px;
 }
 
+.rso-icon svg {
+  width: 28px;
+  height: 28px;
+  color: var(--dusty-rose);
+}
+
 /* ---------------------------------------------------------------------- */
 /* Home screen polish                                                     */
 /* ---------------------------------------------------------------------- */
@@ -3684,6 +3797,12 @@ html.theme-transitioning .sheet {
   flex-shrink: 0;
   box-shadow: 0 4px 10px -4px rgba(111, 74, 94, 0.3);
   animation: ctaPulse 2.6s ease-in-out infinite;
+  color: var(--mauve-dark);
+}
+
+.home-cta-icon svg {
+  width: 26px;
+  height: 26px;
 }
 
 @keyframes ctaPulse {

@@ -1,6 +1,7 @@
 import * as db from "../db.js";
 import { escapeHtml, formatDayLabel, formatDate, thumbPlaceholder } from "../ui.js";
 import { openEditor } from "./editor.js";
+import { ICONS } from "../icons.js";
 
 let mode = "timeline";
 
@@ -29,7 +30,7 @@ export async function renderMemories(container) {
 
   const body = container.querySelector("#mem-body");
   if (!pages.length) {
-    body.innerHTML = `<div class="empty-state"><div class="emoji">🕰️</div><h3>Nothing here yet</h3><p>Pages you create will show up here, organized by date.</p></div>`;
+    body.innerHTML = `<div class="empty-state"><div class="emoji">${ICONS.clock}</div><h3>Nothing here yet</h3><p>Pages you create will show up here, organized by date.</p></div>`;
     return;
   }
 

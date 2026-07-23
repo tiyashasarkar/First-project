@@ -2,11 +2,12 @@ import * as db from "../db.js";
 import { openSheet, closeSheet } from "../ui.js";
 import { openNewJournalSheet } from "./journals.js";
 import { openEditor } from "./editor.js";
+import { ICONS } from "../icons.js";
 
 const TEMPLATES = [
   { id: "blank", icon: "📄", image: "icons/templates/blank.jpg", title: "Blank Page", sub: "Start from a totally empty canvas", wantsPhotos: false },
   { id: "photodump", icon: "🧺", image: "icons/templates/photodump.jpg", title: "Photo Dump", sub: "Lots of photos, playfully scattered", wantsPhotos: true, multi: true },
-  { id: "daily", icon: "☀️", title: "Daily Journal", sub: "One entry about today", wantsPhotos: true, multi: true },
+  { id: "daily", icon: "☀️", image: "icons/templates/daily.jpg", title: "Daily Journal", sub: "One entry about today", wantsPhotos: true, multi: true },
   { id: "travel", icon: "✈️", image: "icons/templates/travel.jpg", title: "Travel Journal", sub: "Photos, tickets, places you went", wantsPhotos: true, multi: true },
   { id: "letter", icon: "💌", image: "icons/templates/letter.jpg", title: "Letter to Future Self", sub: "A page made mostly of words", wantsPhotos: false },
 ];
@@ -61,7 +62,7 @@ async function proceedWithTemplate(template, journalId) {
     .forEach((j) => {
       const btn = document.createElement("button");
       btn.className = "template-card";
-      btn.innerHTML = `<div class="ic">📔</div><div><div class="tc-title">${j.title}</div><div class="tc-sub">${j.pageCount || 0} pages</div></div>`;
+      btn.innerHTML = `<div class="ic">${ICONS.openBook}</div><div><div class="tc-title">${j.title}</div><div class="tc-sub">${j.pageCount || 0} pages</div></div>`;
       btn.addEventListener("click", () => {
         closeSheet();
         proceedWithJournal(template, j.id);

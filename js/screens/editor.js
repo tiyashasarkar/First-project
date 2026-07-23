@@ -4,6 +4,7 @@ import { setMascotVisible } from "../mascot.js";
 import { VIBES } from "../vibes.js";
 import { playPageAudio, stopPageAudio, togglePageAudio, isCurrentlyPlaying } from "../music.js";
 import { openCreateFlow } from "./create.js";
+import { ICONS } from "../icons.js";
 
 const PAGE_W = 380;
 const PAGE_H = 507;
@@ -509,7 +510,7 @@ function buildShell() {
       <button id="ed-title-btn" style="flex:1;min-width:0;text-align:center;padding:6px;">
         <div style="font-family:var(--font-display);font-weight:600;font-size:15px;color:var(--mauve-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="ed-title-txt"></div>
         <div style="font-size:10.5px;color:var(--ink-soft);" id="ed-date-txt"></div>
-        <div class="ed-curate-hint">🎨 Curate</div>
+        <div class="ed-curate-hint">${ICONS.palette} Curate</div>
       </button>
       <div class="grp">
         <button class="icon-btn" id="ed-music"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></button>
@@ -522,7 +523,7 @@ function buildShell() {
           <div class="canvas-page" id="ed-page"></div>
         </div>
         <button class="music-toggle-pill hidden" id="ed-music-toggle">
-          <span class="mtp-icon" id="ed-music-icon">▶</span>
+          <span class="mtp-icon" id="ed-music-icon">${ICONS.play}</span>
           <span class="mtp-label" id="ed-music-label"></span>
         </button>
       </div>
@@ -1161,7 +1162,7 @@ function openStickerSheet() {
       <div class="signature-grid" id="st-signature"></div>
       <div class="sticker-grid hidden" id="st-emoji"></div>
       <div class="hidden" id="st-yours">
-        <button class="btn btn-primary btn-block" id="st-upload-btn">📷 Upload from gallery</button>
+        <button class="btn btn-primary btn-block" id="st-upload-btn">${ICONS.gallery} Upload from gallery</button>
         <p style="font-size:12px;color:var(--ink-soft);margin-top:10px;text-align:center;">Any photo works — it'll drop onto the page as a movable, resizable sticker.</p>
       </div>
     `,
@@ -1330,12 +1331,12 @@ function renderMusicSection(container) {
   const current = ed.page.audio;
   container.innerHTML = `
     <div class="vibe-grid" data-f="vibes"></div>
-    <button class="btn btn-secondary btn-block" data-f="upload" style="margin-top:8px;">🎙️ Upload a clip</button>
+    <button class="btn btn-secondary btn-block" data-f="upload" style="margin-top:8px;">${ICONS.mic} Upload a clip</button>
     <div style="display:flex;gap:8px;margin-top:8px;">
       <input type="text" data-f="spotify-input" placeholder="Paste a Spotify link…" style="flex:1;min-width:0;" />
       <button class="btn btn-primary" data-f="spotify-add">Add</button>
     </div>
-    <p style="font-size:11.5px;color:var(--ink-soft);line-height:1.4;margin:6px 0 0;">Drops a Spotify player right onto the page — drag, resize, or rotate it like a sticker, and tap ▶ once selected to play it.</p>
+    <p style="font-size:11.5px;color:var(--ink-soft);line-height:1.4;margin:6px 0 0;">Drops a Spotify player right onto the page — drag, resize, or rotate it like a sticker, and tap <span class="inline-icon">${ICONS.play}</span> once selected to play it.</p>
     <div data-f="spotify-hint" style="display:none;"></div>
     ${current ? `<button class="btn btn-block" data-f="remove" style="color:#c94f6a;margin-top:8px;">Remove music</button>` : ""}
   `;
@@ -1377,7 +1378,7 @@ function renderMusicSection(container) {
         <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.5;margin:8px 0 6px;">
           That's a shortened link — tap it to open Spotify, then copy the full <b>open.spotify.com</b> link from the address bar and paste it back here.
         </p>
-        <a href="${parsed.url}" target="_blank" rel="noopener" class="btn btn-secondary btn-block" style="text-decoration:none;">🔗 Open shortened link</a>
+        <a href="${parsed.url}" target="_blank" rel="noopener" class="btn btn-secondary btn-block" style="text-decoration:none;">${ICONS.linkChain} Open shortened link</a>
       `;
       showToast("That's a shortened link — see the tip below the Spotify field.");
       return;
@@ -1412,8 +1413,8 @@ function updateMusicUI() {
   pill.classList.remove("hidden");
   const label = audio.type === "vibe" ? (VIBES.find((v) => v.id === audio.vibeId)?.label || "Vibe") : "Your clip";
   const nowPlaying = isCurrentlyPlaying(audio);
-  document.getElementById("ed-music-icon").textContent = nowPlaying ? "⏸" : "▶";
-  document.getElementById("ed-music-label").textContent = "🎵 " + label;
+  document.getElementById("ed-music-icon").innerHTML = nowPlaying ? ICONS.pause : ICONS.play;
+  document.getElementById("ed-music-label").innerHTML = `<span class="mtp-note">${ICONS.musicNote}</span>${escapeHtml(label)}`;
   pill.classList.toggle("playing", nowPlaying);
 }
 
