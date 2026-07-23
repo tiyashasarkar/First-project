@@ -58,7 +58,6 @@ export function renderCover(container, onOpened) {
   container.innerHTML = `
     <div class="cover-backdrop"></div>
     <div class="cover-stage" id="cover-stage">
-      <div class="cover-ambient-shadow"></div>
       <div class="jc-page" id="jc-page" role="button" tabindex="0" aria-label="Continue" style="background-image:url('${IMG_COVER}');">
         ${stickersHtml}
       </div>

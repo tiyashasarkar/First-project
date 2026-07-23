@@ -39,69 +39,55 @@
   pointer-events: none;
 }
 
-/* A plain warm gradient fills the space around the crisp journal instead
-   of a plain empty margin. Deliberately NOT a blurred duplicate of the
-   photo — the photo's own background fabric is a pale off-white, and
-   blurring it back in behind the journal is exactly what reads as a
-   "white sheet" showing around the edges. A solid warm tone can never do
-   that, regardless of screen size/aspect ratio. */
+/* Fallback fill only — with the page now sized to always fully cover the
+   viewport (below), this should never actually be visible, but it keeps
+   the same warm tone as the photo instead of plain white for the first
+   paint before the photo decodes. */
 .cover-backdrop {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 42%, #e7cd82 0%, #cfae5e 55%, #a9803c 100%);
+  background: #d8bd6e;
 }
 
 .cover-stage {
-  position: relative;
-  /* Matches the cropped photo's own 817:1208 ratio so every percentage
-     position below lines up pixel-for-pixel at any screen size. Sized as
-     large as the viewport allows — the calc() term converts an available
-     height budget into the matching width at this exact ratio, so it can
-     never distort or need a separate max-height clamp. */
-  width: min(96vw, calc(92vh * 0.6765), 900px);
-  aspect-ratio: 817 / 1208;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
   perspective: 2000px;
 }
 
-@media (max-height: 560px) {
-  .cover-stage { width: min(88vw, calc(82vh * 0.6765), 420px); }
-}
-
-.cover-ambient-shadow {
-  position: absolute;
-  left: 4%;
-  right: 3%;
-  bottom: -4%;
-  height: 10%;
-  background: radial-gradient(ellipse, rgba(30, 20, 5, 0.45), transparent 72%);
-  filter: blur(6px);
-}
-
 /* ---------------------------------------------------------------------- */
-/* The page — your real photo, one static piece. Corner radii are         */
-/* percentage-based (not fixed px) so they scale with the page and mask   */
-/* the photo's own naturally-rounded corners, where a sliver of           */
-/* background fabric would otherwise still peek through.                  */
+/* The page — your real photo, filling the entire screen edge to edge on   */
+/* phone-shaped screens. Sized like a CSS "cover" background (the larger  */
+/* of "fill the width" or "fill the height", preserving the photo's real  */
+/* 817:1208 proportions — never stretched) so there is never a visible    */
+/* backdrop margin on mobile. Capped at 720px — comfortably above any      */
+/* phone width — so a wide desktop/tablet window doesn't stretch it into  */
+/* a very short sliver that crops away the lower stickers/charms; on      */
+/* those wider screens it settles into a centered, fully-visible column   */
+/* instead. Anchored to its own top edge so the title/headphones area is  */
+/* always fully visible; any cropping needed on very narrow/tall phones   */
+/* comes off the bottom instead.                                         */
 /* ---------------------------------------------------------------------- */
 
 .jc-page {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 50%;
+  width: min(max(100%, calc(100dvh * 0.6765)), 720px);
+  aspect-ratio: 817 / 1208;
+  transform: translateX(-50%) translateZ(0) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(1);
   background-repeat: no-repeat;
   background-size: 100% 100%;
   background-color: #d8bd6e;
-  border-radius: 15% 6% 6% 15% / 7% 3% 3% 7%;
-  box-shadow: 0 22px 46px -18px rgba(30, 20, 5, 0.5);
-  overflow: hidden;
   user-select: none;
   cursor: pointer;
-  transform: translateZ(0) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(1);
   transition: transform 0.28s ease-out;
 }
 
 .jc-page.pressed {
   transition: transform 0.18s ease;
-  transform: translateZ(0) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(0.97);
+  transform: translateX(-50%) translateZ(0) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(0.97);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -184,8 +170,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .jc-page {
+    /* Keep the translateX(-50%) centering -- only the transition itself
+       is disabled. Tilt is already skipped in JS under reduced motion,
+       so --tilt-x/--tilt-y stay at their 0deg defaults regardless. */
     transition: none;
-    transform: none;
   }
   .jc-open-hint {
     animation: none !important;
