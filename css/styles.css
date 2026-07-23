@@ -502,6 +502,44 @@ a {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
 }
 
+/* Shown on any thumb (memory card, timeline entry, "continue editing" tile)
+   that has no photo cover yet — a centered doodle in a bordered badge
+   instead of a flat color block. Colors are theme variables so it always
+   matches the active palette. */
+.thumb-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thumb-badge {
+  width: 46%;
+  max-width: 52px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1.6px solid var(--dusty-rose);
+  color: var(--dusty-rose);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thumb-badge svg {
+  width: 58%;
+  height: 58%;
+}
+
+.thumb-sm {
+  position: relative;
+}
+
+.thumb-sm .thumb-badge {
+  max-width: 30px;
+}
+
 .memory-card .meta {
   padding: 10px 12px 12px;
 }
@@ -1109,9 +1147,10 @@ a {
 }
 
 .mode-card .mc-emoji img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+  object-position: center;
 }
 
 .mode-card .mc-title {
@@ -2327,9 +2366,10 @@ button.settings-row:active {
 }
 
 .settings-row .si img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+  object-position: center;
 }
 
 .settings-row .si svg {
@@ -2521,6 +2561,11 @@ button.settings-row:active {
   background-position: center;
   background-color: var(--peach);
   flex-shrink: 0;
+  position: relative;
+}
+
+.timeline-entry .thumb .thumb-badge {
+  max-width: 28px;
 }
 
 .timeline-entry .tx {
@@ -3034,6 +3079,24 @@ html.theme-transitioning .sheet {
 
   .journal-grid {
     grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Laptop and up: the 980px cap above reads great on an iPad but leaves a
+   wide, obviously blank gutter on a 1280px+ laptop window — widen the
+   content column so it actually fills the screen instead. */
+@media (min-width: 1280px) {
+  .screen-scroll {
+    max-width: 1360px;
+  }
+
+  .journal-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .signature-grid,
+  .sticker-grid {
+    max-width: 620px;
   }
 }
 
@@ -3564,6 +3627,13 @@ html.theme-transitioning .sheet {
   display: inline-block;
   animation: greetingWobble 2.4s ease-in-out infinite;
   transform-origin: 70% 70%;
+  color: var(--dusty-rose);
+}
+
+.home-greeting-emoji svg {
+  width: 30px;
+  height: 30px;
+  display: block;
 }
 
 @keyframes greetingWobble {

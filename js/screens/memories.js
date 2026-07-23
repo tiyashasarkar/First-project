@@ -1,5 +1,5 @@
 import * as db from "../db.js";
-import { escapeHtml, formatDayLabel, formatDate } from "../ui.js";
+import { escapeHtml, formatDayLabel, formatDate, thumbPlaceholder } from "../ui.js";
 import { openEditor } from "./editor.js";
 
 let mode = "timeline";
@@ -94,7 +94,7 @@ async function entryEl(page) {
     if (url) style = `background-image:url('${url}')`;
   }
   el.innerHTML = `
-    <div class="thumb" style="${style}"></div>
+    <div class="thumb" style="${style}">${style ? "" : thumbPlaceholder(page.id)}</div>
     <div class="tx">
       <div class="t">${escapeHtml(page.title || "Untitled")}${page.mood ? " " + page.mood : ""}</div>
       <div class="s">${formatDate(page.dateISO ? new Date(page.dateISO + "T12:00:00").getTime() : page.createdAt)}</div>

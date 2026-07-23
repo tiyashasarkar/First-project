@@ -52,6 +52,29 @@ export function confirmAction({ title, message, confirmLabel = "Delete", danger 
   document.getElementById("confirm-no").onclick = closeSheet;
 }
 
+// A handful of original hand-drawn line-art doodles used as a placeholder
+// badge on memory/page thumbnails that have no photo cover yet — so an
+// undesigned page reads as "a little blank canvas" rather than a dead
+// flat rectangle. Picked deterministically per id so the same page always
+// shows the same doodle, but different pages naturally get variety.
+const THUMB_DOODLES = [
+  `<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 8c2 3 2 6-1 8 3-1 6 0 7 3-3-1-6 0-7 3 1-3 0-6-3-7 3 0 5-2 4-5"/><circle cx="20" cy="20" r="2.6" fill="currentColor" stroke="none"/></svg>`,
+  `<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 29C11 23 8 17 8 13c0-4 3-6 6-6 3 0 5 2 6 4 1-2 3-4 6-4 3 0 6 2 6 6 0 4-3 10-12 16Z"/></svg>`,
+  `<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 7l3.4 8.2L32 16l-6.4 5.8L27.4 30 20 25.4 12.6 30l1.8-8.2L8 16l8.6-0.8Z" stroke-linejoin="round"/></svg>`,
+  `<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 20 8 14c-2-1-2-5 1-6 4-1 8 2 11 8m0 4 12-6c2-1 2-5-1-6-4-1-8 2-11 8"/><circle cx="20" cy="21" r="2.2" fill="currentColor" stroke="none"/><path d="M18 23c-2 3-2 6 0 8m4-8c2 3 2 6 0 8" stroke-width="1.4"/></svg>`,
+];
+
+function hashId(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+export function thumbPlaceholder(id) {
+  const doodle = THUMB_DOODLES[hashId(String(id)) % THUMB_DOODLES.length];
+  return `<div class="thumb-placeholder"><div class="thumb-badge">${doodle}</div></div>`;
+}
+
 export function escapeHtml(str = "") {
   return str.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
