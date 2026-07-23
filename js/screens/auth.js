@@ -35,7 +35,7 @@ export function renderAuth(container) {
         <circle cx="50" cy="45" r="13" fill="#f0bd82"/>
       </svg>
       <h1 style="text-align:center;font-family:var(--font-script);font-size:34px;font-weight:400;line-height:1.15;">Once upon a Tuesday</h1>
-      <p style="text-align:center;font-family:var(--font-script);font-size:20px;color:var(--dusty-rose);margin-top:2px;margin-bottom:22px;">where memories become pages</p>
+      <p style="text-align:center;font-family:var(--font-script);font-size:20px;color:#c9932e;margin-top:2px;margin-bottom:22px;">where memories become pages</p>
 
       <div class="segmented" style="margin-bottom:18px;">
         <button data-mode="signin" class="${mode === "signin" ? "active" : ""}">Sign in</button>

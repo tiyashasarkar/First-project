@@ -996,6 +996,17 @@ a {
   text-align: center;
 }
 
+/* The sign-in/create-account toggle otherwise inherits the app's default
+   pink pill (.segmented uses --blush) -- keep it in the same baby-yellow
+   family as the rest of this pre-login card. */
+.auth-card .segmented {
+  background: #fff3cf;
+}
+
+.auth-card .segmented button.active {
+  color: #a8721c;
+}
+
 .auth-card .field label {
   text-align: left;
 }
