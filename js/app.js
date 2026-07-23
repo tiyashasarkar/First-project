@@ -3,7 +3,7 @@ import * as db from "./db.js";
 import * as legacyDb from "./legacy-local-db.js";
 import { auth, isFirebaseConfigured } from "./firebase.js";
 import { showToast, openSheet, closeSheet } from "./ui.js";
-import { getTheme, applyTheme } from "./theme.js";
+import { getTheme, applyTheme, resetThemeColorMeta } from "./theme.js";
 import { renderAuth } from "./screens/auth.js";
 import { renderCover } from "./screens/cover.js";
 import { renderModePicker } from "./screens/mode-picker.js";
@@ -241,6 +241,7 @@ async function showSignedInApp() {
 async function showSignedOut() {
   unmountMascot();
   unmountAssistant();
+  resetThemeColorMeta();
   document.getElementById("onboarding").classList.remove("active");
   const authScreen = document.getElementById("auth-screen");
   renderAuth(authScreen);
