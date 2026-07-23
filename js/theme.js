@@ -22,6 +22,31 @@ export function applyTheme(themeId, { animate = false } = {}) {
   }
 }
 
+// The browser's own chrome (Safari's address bar / bottom toolbar) is
+// tinted from the <meta name="theme-color"> tag, not from any CSS on the
+// page. It's fixed to a cream color everywhere before the app proper is
+// showing (cover, sign-in, the theme picker itself) so it never clashes --
+// but once a theme is actually chosen and Home appears, that same fixed
+// cream reads as a mismatched gold bar sitting above a pink/dark page. Only
+// here, at the moment a theme is committed to, do we hand the chrome color
+// over to match it.
+const CREAM_CHROME = "#fdf3da";
+const THEME_CHROME = {
+  blossom: "#fdf1f4",
+  glam: "#fff0f8",
+  midnight: "#14172c",
+};
+
+export function syncThemeColorMeta(themeId) {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", THEME_CHROME[themeId] || CREAM_CHROME);
+}
+
+export function resetThemeColorMeta() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", CREAM_CHROME);
+}
+
 function playThemeTransition(themeId) {
   const root = document.documentElement;
   root.classList.add("theme-transitioning");
@@ -51,4 +76,5 @@ export async function getTheme() {
 export async function setTheme(themeId) {
   await db.kvSet("theme", themeId);
   applyTheme(themeId, { animate: true });
+  syncThemeColorMeta(themeId);
 }
