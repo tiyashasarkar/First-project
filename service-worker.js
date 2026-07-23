@@ -1,7 +1,7 @@
 // Blossom service worker — caches the app shell so it opens instantly
 // and works offline. Bump CACHE_NAME whenever app files change so old
 // devices pick up the new version.
-const CACHE_NAME = "blossom-v20";
+const CACHE_NAME = "blossom-v21";
 const EXTERNAL_CACHE = "blossom-external-v2";
 
 const APP_SHELL = [
@@ -44,6 +44,9 @@ const APP_SHELL = [
   "./icons/templates/photodump.jpg",
   "./icons/templates/travel.jpg",
   "./icons/templates/letter.jpg",
+  "./icons/bob.png",
+  "./icons/barbie.png",
+  "./icons/batman.jpg",
 ];
 
 self.addEventListener("install", (event) => {
