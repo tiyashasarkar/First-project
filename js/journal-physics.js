@@ -1,8 +1,8 @@
 // Small, dependency-free interaction helpers shared by the journal cover
-// landing screen: cursor-driven tilt, charm sway/jiggle, and draggable
-// "peel up" stickers. Pure CSS classes + Pointer Events — no physics
-// engine, no build step. Kept separate from cover.js so the cover's markup
-// and its interaction logic can be read/changed independently.
+// landing screen: cursor-driven tilt and draggable "peel up" stickers.
+// Pure CSS classes + Pointer Events — no physics engine, no build step.
+// Kept separate from cover.js so the cover's markup and its interaction
+// logic can be read/changed independently.
 
 export function prefersReducedMotion() {
   return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -29,93 +29,6 @@ export function initTilt(stage, target, { max = 5 } = {}) {
     target.style.setProperty("--tilt-x", "0deg");
     target.style.setProperty("--tilt-y", "0deg");
   });
-}
-
-// Idle sway lives entirely in CSS keyframes (see cover.css); this just
-// triggers a bigger, one-off jiggle — e.g. when the elastic is released or
-// the cursor brushes past — by swapping in a second animation briefly.
-export function pulseCharms(root) {
-  const charms = root.querySelectorAll(".jc-charm");
-  charms.forEach((charm, i) => {
-    setTimeout(() => {
-      charm.classList.remove("pulse");
-      void charm.offsetWidth; // restart the animation if it's already mid-pulse
-      charm.classList.add("pulse");
-    }, i * 60);
-  });
-}
-
-export function initCharmProximity(triggerEl, root) {
-  if (prefersReducedMotion()) return;
-  let last = 0;
-  triggerEl.addEventListener("pointerenter", () => {
-    const now = Date.now();
-    if (now - last < 900) return;
-    last = now;
-    pulseCharms(root);
-  });
-}
-
-export function wireCharmPulseCleanup(root) {
-  root.querySelectorAll(".jc-charm").forEach((charm) => {
-    charm.addEventListener("animationend", (e) => {
-      if (e.animationName === "charmPulse") charm.classList.remove("pulse");
-    });
-  });
-}
-
-// Makes the elastic string itself the "open" gesture: drag it upward and,
-// past a small threshold, it releases and the caller's onOpen fires. Released
-// early (before the threshold), it springs back to rest. Tracks vertical
-// movement only, with a little resistance so it feels like real tension
-// rather than a free-floating drag.
-export function makeElasticOpenable(elasticEl, { threshold = 44, onDragStart, onDragProgress, onOpen } = {}) {
-  elasticEl.style.touchAction = "none";
-  let dragging = false, startY = 0, pointerId = null, triggered = false;
-
-  function setDrag(px) {
-    elasticEl.style.setProperty("--elastic-drag", px.toFixed(1) + "px");
-  }
-
-  function onDown(e) {
-    if (triggered || dragging) return;
-    dragging = true;
-    pointerId = e.pointerId;
-    elasticEl.setPointerCapture(pointerId);
-    startY = e.clientY;
-    elasticEl.classList.add("dragging");
-    if (onDragStart) onDragStart();
-  }
-
-  function onMove(e) {
-    if (!dragging || e.pointerId !== pointerId) return;
-    // Only upward movement stretches the string; a little resistance
-    // (sqrt curve) keeps it from feeling like it's flying off too easily.
-    const raw = Math.max(0, startY - e.clientY);
-    const dist = Math.sqrt(raw) * 5.5;
-    setDrag(-Math.min(dist, threshold * 1.4));
-    if (onDragProgress) onDragProgress(Math.min(1, dist / threshold));
-    if (dist >= threshold && !triggered) {
-      triggered = true;
-      dragging = false;
-      try { elasticEl.releasePointerCapture(pointerId); } catch {}
-      elasticEl.classList.remove("dragging");
-      if (onOpen) onOpen();
-    }
-  }
-
-  function onUp(e) {
-    if (!dragging || e.pointerId !== pointerId) return;
-    dragging = false;
-    elasticEl.classList.remove("dragging");
-    setDrag(0);
-    if (onDragProgress) onDragProgress(0);
-  }
-
-  elasticEl.addEventListener("pointerdown", onDown);
-  elasticEl.addEventListener("pointermove", onMove);
-  elasticEl.addEventListener("pointerup", onUp);
-  elasticEl.addEventListener("pointercancel", onUp);
 }
 
 // Makes an element pick-up-and-draggable with a paper "peel" feel: it

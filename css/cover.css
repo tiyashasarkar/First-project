@@ -2,20 +2,22 @@
    "Once upon a Tuesday" — journal cover landing screen
 
    The cover is your actual photo (icons/cover/journal-cover*.jpg), shown
-   in full and never redrawn. The real photo isn't two equal covers — it's
-   one large paper front cover (~70% of the width) and a narrower lace
-   spine strip (~30%) — so that's how it splits: one big flap that hinges
-   open on its left edge, and a spine that never moves, because spines
-   don't open in real life. Charms/elastic/stickers are further crops of
-   that same photo, positioned in exact pixel-accurate registration on top
-   of where they already sit, so at rest the page is indistinguishable
-   from the plain photo. Interactive pieces are clipped to their real
-   die-cut silhouette (clip-path polygon) instead of a plain rectangle —
-   deliberately avoids CSS mask-image (inconsistent across browsers) and
-   any continuously-running transform on the photo crops — everything
-   sits perfectly still, in perfect registration, until it's actually
-   touched. Layout/visuals live here; drag/sway/tilt/elastic logic lives
-   in js/journal-physics.js; markup in js/screens/cover.js.
+   in full and never redrawn — only cropped, non-destructively, to trim the
+   plain fabric background around it (never the journal itself). The real
+   photo isn't two equal covers — it's one large paper front cover (~70%
+   of the width) and a narrower lace spine strip (~30%) — so that's how it
+   splits, and both pieces open like real double doors: the cover swings
+   to its side on a left-edge hinge, the spine swings to its side on a
+   right-edge hinge. The elastic band and its charms are left exactly as
+   photographed, baked into the flap/spine art (they're static hardware,
+   not something you tug on) — only the paper stickers are still separate,
+   draggable pieces, each clipped to its real die-cut silhouette (clip-path
+   polygon) instead of a plain rectangle. Deliberately avoids CSS
+   mask-image (inconsistent across browsers) and any continuously-running
+   transform on the photo crops — everything sits perfectly still, in
+   perfect registration, until it's actually touched. Layout/visuals live
+   here; drag/tilt logic lives in js/journal-physics.js; markup in
+   js/screens/cover.js.
    ========================================================================== */
 
 #cover-screen {
@@ -26,9 +28,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  /* Solid warm fallback so nothing can ever show through as plain white,
-     even for a frame before the backdrop photo decodes. */
-  background-color: #7d6329;
+  background: #d8bd6e;
   transition: opacity 0.45s ease, visibility 0.45s;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -40,41 +40,32 @@
   pointer-events: none;
 }
 
-/* A softly blurred, full-bleed duplicate of the SAME photo fills the
-   space around the crisp journal instead of a plain empty margin — so
-   nothing outside the journal ever reads as "blank background," without
-   cropping or altering the journal itself. */
+/* A plain warm gradient fills the space around the crisp journal instead
+   of a plain empty margin. Deliberately NOT a blurred duplicate of the
+   photo — the photo's own background fabric is a pale off-white, and
+   blurring it back in behind the journal is exactly what reads as a
+   "white sheet" showing around the edges. A solid warm tone can never do
+   that, regardless of screen size/aspect ratio. */
 .cover-backdrop {
   position: absolute;
-  inset: -6%;
-  background-color: #7d6329;
-  background-size: cover;
-  background-position: center;
-  filter: blur(38px) saturate(1.15) brightness(0.8);
-  transform: scale(1.08);
-}
-
-.cover-backdrop::after {
-  content: "";
-  position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 45%, transparent 40%, rgba(35, 24, 6, 0.35) 100%);
+  background: radial-gradient(ellipse at 50% 42%, #e7cd82 0%, #cfae5e 55%, #a9803c 100%);
 }
 
 .cover-stage {
   position: relative;
-  /* Matches the source photo's own 835:1208 ratio so every percentage
+  /* Matches the cropped photo's own 817:1208 ratio so every percentage
      position below lines up pixel-for-pixel at any screen size. Sized as
      large as the viewport allows — the calc() term converts an available
      height budget into the matching width at this exact ratio, so it can
      never distort or need a separate max-height clamp. */
-  width: min(96vw, calc(92vh * 0.6913), 900px);
-  aspect-ratio: 835 / 1208;
+  width: min(96vw, calc(92vh * 0.6765), 900px);
+  aspect-ratio: 817 / 1208;
   perspective: 2000px;
 }
 
 @media (max-height: 560px) {
-  .cover-stage { width: min(88vw, calc(82vh * 0.6913), 420px); }
+  .cover-stage { width: min(88vw, calc(82vh * 0.6765), 420px); }
 }
 
 .cover-ambient-shadow {
@@ -96,13 +87,13 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* The inside page — baby-yellow felt, revealed once the cover opens      */
+/* The inside page — baby-yellow felt, revealed once both flaps open      */
 /* ---------------------------------------------------------------------- */
 
 .jc-inner-page {
   position: absolute;
   inset: 0;
-  border-radius: 14px 22px 22px 14px;
+  border-radius: 15% 10% 10% 15% / 7% 7% 7% 7%;
   background-color: #fdedac;
   background-image:
     repeating-radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.55) 0, rgba(255, 255, 255, 0.55) 1px, transparent 1px, transparent 100%),
@@ -124,7 +115,10 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* Front cover flap — the large paper panel, hinged on its left edge      */
+/* The two flaps — real crops of your photo, split at their real seam.    */
+/* Corner radii are percentage-based (not fixed px) so they scale with    */
+/* the flap and mask the photo's own naturally-rounded corners, where a   */
+/* sliver of background fabric would otherwise peek through.              */
 /* ---------------------------------------------------------------------- */
 
 .jc-flap {
@@ -134,7 +128,8 @@
   background-repeat: no-repeat;
   background-size: 100% 100%;
   backface-visibility: hidden;
-  transition: transform 1500ms cubic-bezier(0.45, 0.05, 0.15, 1), box-shadow 1500ms ease;
+  cursor: pointer;
+  transition: transform 1400ms cubic-bezier(0.45, 0.05, 0.15, 1), box-shadow 1400ms ease;
   overflow: hidden;
   user-select: none;
 }
@@ -143,10 +138,9 @@
   left: 0;
   width: 70.06%;
   z-index: 4;
-  border-radius: 14px 0 0 14px;
+  border-radius: 15% 0 0 15% / 7% 0 0 7%;
   transform-origin: left center;
   transform: translateZ(0) rotateY(0deg);
-  cursor: pointer;
   box-shadow: -4px 0 20px -10px rgba(90, 70, 25, 0.4) inset, 0 22px 46px -18px rgba(30, 20, 5, 0.5);
 }
 
@@ -155,104 +149,19 @@
   box-shadow: -30px 14px 50px -20px rgba(0, 0, 0, 0.45);
 }
 
-/* ---------------------------------------------------------------------- */
-/* Spine strip — the narrow lace-wrapped binding. A real spine never      */
-/* opens, so this piece just sits fixed in place the whole time.          */
-/* ---------------------------------------------------------------------- */
-
 .jc-spine {
-  position: absolute;
-  top: 0;
-  bottom: 0;
   right: 0;
   width: 29.94%;
-  z-index: 2;
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-  border-radius: 0 22px 22px 0;
+  z-index: 4;
+  border-radius: 0 20% 20% 0 / 0 9% 9% 0;
+  transform-origin: right center;
+  transform: translateZ(0) rotateY(0deg);
   box-shadow: 4px 0 20px -10px rgba(90, 70, 25, 0.4) inset, 0 22px 46px -18px rgba(30, 20, 5, 0.5);
 }
 
-/* ---------------------------------------------------------------------- */
-/* Overlay layer: elastic + charms, shared across both flaps at rest      */
-/* ---------------------------------------------------------------------- */
-
-.jc-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  /* Only the elastic/charms themselves should catch pointer events — the
-     rest of this full-size layer must let clicks/drags pass through to
-     whichever flap sits underneath. */
-  pointer-events: none;
-  transition: opacity 0.5s ease 0.2s;
-}
-
-.jc-overlay.fading {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* A real elastic band wrapped snugly around a thick journal barely
-   stretches when you tug at what's hanging from it — the charms swing,
-   the string doesn't. So the band itself never transforms at all; only
-   its cursor and a very subtle grab-highlight change with interaction. */
-.jc-elastic {
-  position: absolute;
-  pointer-events: auto;
-  cursor: grab;
-  filter: brightness(1);
-  transition: filter 0.3s ease;
-}
-
-.jc-elastic.dragging {
-  cursor: grabbing;
-  filter: brightness(0.94);
-}
-
-.jc-elastic-img {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-/* ---------------------------------------------------------------------- */
-/* Hanging charms — real crops of your photo. Deliberately motionless at  */
-/* rest (perfectly registered = invisible) so nothing ever looks "cut" —  */
-/* they only move for the brief, intentional reactions below.            */
-/* ---------------------------------------------------------------------- */
-
-.jc-charm {
-  position: absolute;
-  z-index: 6;
-  transform-origin: 50% 6%;
-  pointer-events: auto;
-}
-
-.jc-charm img {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.jc-charm.pulse { animation: charmPulse 1.1s cubic-bezier(0.36, 0.07, 0.19, 0.97) 1; }
-
-#cover-screen.is-opening .jc-charm { animation: charmYank 0.9s cubic-bezier(0.33, 0.1, 0.2, 1) 1 forwards; }
-
-@keyframes charmPulse {
-  0% { transform: rotate(0deg); }
-  20% { transform: rotate(11deg); }
-  40% { transform: rotate(-9deg); }
-  60% { transform: rotate(6deg); }
-  80% { transform: rotate(-2deg); }
-  100% { transform: rotate(0deg); }
-}
-
-@keyframes charmYank {
-  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-  35% { transform: translateY(-12px) rotate(11deg); opacity: 1; }
-  60% { transform: translateY(-30px) rotate(-7deg); opacity: 1; }
-  100% { transform: translateY(-58px) rotate(5deg); opacity: 0; }
+.jc-spine.open {
+  transform: translateZ(0) rotateY(148deg);
+  box-shadow: 30px 14px 50px -20px rgba(0, 0, 0, 0.45);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -302,7 +211,7 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* "Pull the string" hint + opening-state locking                         */
+/* "Tap to open" hint + opening-state locking                             */
 /* ---------------------------------------------------------------------- */
 
 .jc-open-hint {
@@ -317,6 +226,7 @@
   text-transform: uppercase;
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6);
   pointer-events: none;
+  z-index: 6;
   animation: hintPulse 2.4s ease-in-out infinite;
   transition: opacity 0.3s ease;
 }
@@ -340,15 +250,10 @@
   .jc-flap {
     transition: opacity 0.3s ease;
   }
-  .jc-cover-flap.open {
+  .jc-cover-flap.open,
+  .jc-spine.open {
     transform: translateZ(0) rotateY(0deg);
     opacity: 0;
-  }
-  .jc-elastic {
-    transition: opacity 0.3s ease;
-  }
-  .jc-overlay {
-    transition: opacity 0.3s ease;
   }
   .jc-sticker,
   .jc-sticker-inner {
