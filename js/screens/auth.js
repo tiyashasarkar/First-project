@@ -23,6 +23,17 @@ function friendlyError(err) {
 
 let mode = "signin";
 
+// Set right before a sign-in/sign-up submit succeeds, so app.js can tell a
+// fresh login apart from Firebase silently restoring an already-signed-in
+// session on page load — the theme picker should greet every login, not
+// every app open.
+let justAuthenticated = false;
+export function consumeJustAuthenticated() {
+  const v = justAuthenticated;
+  justAuthenticated = false;
+  return v;
+}
+
 export function renderAuth(container) {
   container.innerHTML = `
     <div class="auth-card fade-in">
@@ -90,6 +101,7 @@ export function renderAuth(container) {
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
       }
+      justAuthenticated = true;
       // app.js's onAuthStateChanged listener takes it from here
     } catch (err) {
       showError(friendlyError(err));

@@ -4,7 +4,7 @@ import * as legacyDb from "./legacy-local-db.js";
 import { auth, isFirebaseConfigured } from "./firebase.js";
 import { showToast, openSheet, closeSheet } from "./ui.js";
 import { getTheme, applyTheme } from "./theme.js";
-import { renderAuth } from "./screens/auth.js";
+import { renderAuth, consumeJustAuthenticated } from "./screens/auth.js";
 import { renderModePicker } from "./screens/mode-picker.js";
 import { renderHome } from "./screens/home.js";
 import { renderJournals, renderJournalDetail } from "./screens/journals.js";
@@ -208,10 +208,14 @@ function waitAtLeast(ms) {
 
 async function pickModeIfNeeded() {
   const chosen = await getTheme();
-  if (chosen) return;
+  // Every fresh sign-in or sign-up greets the person with the theme
+  // picker, not just their very first time ever opening the app — a page
+  // reload that silently restores an already-open session does not count.
+  const forced = consumeJustAuthenticated();
+  if (chosen && !forced) return;
   const picker = document.getElementById("mode-picker");
   await new Promise((resolve) => {
-    renderModePicker(picker, () => {
+    renderModePicker(picker, chosen, () => {
       picker.classList.remove("active");
       resolve();
     });

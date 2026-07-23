@@ -1,11 +1,11 @@
 import { THEMES, applyTheme, setTheme } from "../theme.js";
 
-export function renderModePicker(container, onDone) {
-  let selected = "blossom";
+export function renderModePicker(container, currentThemeId, onDone) {
+  let selected = currentThemeId || "blossom";
 
   container.innerHTML = `
     <h1>Choose your vibe</h1>
-    <p class="sub">Pick a look for Blossom — you can always change this later in Profile.</p>
+    <p class="sub">${currentThemeId ? "Keep your look, or pick a new one for this session." : "Pick a look for Blossom — you can always change this later in Profile."}</p>
     <div class="mode-list" id="mode-list"></div>
     <button class="btn btn-primary btn-block" id="mode-continue" style="margin-top:16px;">Continue</button>
   `;

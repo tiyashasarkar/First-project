@@ -4,11 +4,11 @@ import { openNewJournalSheet } from "./journals.js";
 import { openEditor } from "./editor.js";
 
 const TEMPLATES = [
-  { id: "blank", icon: "📄", title: "Blank Page", sub: "Start from a totally empty canvas", wantsPhotos: false },
-  { id: "photodump", icon: "🧺", title: "Photo Dump", sub: "Lots of photos, playfully scattered", wantsPhotos: true, multi: true },
+  { id: "blank", icon: "📄", image: "icons/templates/blank.jpg", title: "Blank Page", sub: "Start from a totally empty canvas", wantsPhotos: false },
+  { id: "photodump", icon: "🧺", image: "icons/templates/photodump.jpg", title: "Photo Dump", sub: "Lots of photos, playfully scattered", wantsPhotos: true, multi: true },
   { id: "daily", icon: "☀️", title: "Daily Journal", sub: "One entry about today", wantsPhotos: true, multi: true },
-  { id: "travel", icon: "✈️", title: "Travel Journal", sub: "Photos, tickets, places you went", wantsPhotos: true, multi: true },
-  { id: "letter", icon: "💌", title: "Letter to Future Self", sub: "A page made mostly of words", wantsPhotos: false },
+  { id: "travel", icon: "✈️", image: "icons/templates/travel.jpg", title: "Travel Journal", sub: "Photos, tickets, places you went", wantsPhotos: true, multi: true },
+  { id: "letter", icon: "💌", image: "icons/templates/letter.jpg", title: "Letter to Future Self", sub: "A page made mostly of words", wantsPhotos: false },
 ];
 
 export function openCreateFlow({ journalId } = {}) {
@@ -18,7 +18,7 @@ export function openCreateFlow({ journalId } = {}) {
       <div class="template-list">
         ${TEMPLATES.map((t) => `
           <button class="template-card" data-t="${t.id}">
-            <div class="ic">${t.icon}</div>
+            <div class="ic">${t.image ? `<img src="${t.image}" alt="" />` : t.icon}</div>
             <div>
               <div class="tc-title">${t.title}</div>
               <div class="tc-sub">${t.sub}</div>
