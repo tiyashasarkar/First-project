@@ -57,24 +57,19 @@
 }
 
 /* ---------------------------------------------------------------------- */
-/* The page — your real photo, filling the entire screen edge to edge on   */
-/* phone-shaped screens. Sized like a CSS "cover" background (the larger  */
-/* of "fill the width" or "fill the height", preserving the photo's real  */
-/* 817:1208 proportions — never stretched) so there is never a visible    */
-/* backdrop margin on mobile. Capped at 720px — comfortably above any      */
-/* phone width — so a wide desktop/tablet window doesn't stretch it into  */
-/* a very short sliver that crops away the lower stickers/charms; on      */
-/* those wider screens it settles into a centered, fully-visible column   */
-/* instead. Anchored to its own top edge so the title/headphones area is  */
-/* always fully visible; any cropping needed on very narrow/tall phones   */
-/* comes off the bottom instead.                                         */
+/* The page — your real photo, filling every side of the screen. Sized     */
+/* like a CSS "cover" background (the larger of "fill the width" or "fill */
+/* the height", preserving the photo's real 817:1208 proportions — never  */
+/* stretched) so no backdrop is ever visible on any side, on any screen.  */
+/* Anchored to its own top edge so the title/headphones area is always    */
+/* fully visible; any cropping this requires comes off the bottom.        */
 /* ---------------------------------------------------------------------- */
 
 .jc-page {
   position: absolute;
   top: 0;
   left: 50%;
-  width: min(max(100%, calc(100dvh * 0.6765)), 720px);
+  width: max(100%, calc(100dvh * 0.6765));
   aspect-ratio: 817 / 1208;
   transform: translateX(-50%) translateZ(0) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(1);
   background-repeat: no-repeat;
