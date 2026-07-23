@@ -224,8 +224,13 @@ async function pickModeIfNeeded() {
 
 async function showSignedInApp() {
   document.getElementById("auth-screen").classList.remove("active");
-  await offerLocalDataMigrationIfNeeded();
+  // Mode picker first, before anything that waits on the network (the
+  // local-data migration check queries Firestore) -- otherwise there's a
+  // gap with nothing shown yet but the raw page background, which flashes
+  // whatever color the last-chosen theme left behind instead of staying
+  // on the fixed baby-yellow look this pre-Home moment is supposed to have.
   await pickModeIfNeeded();
+  await offerLocalDataMigrationIfNeeded();
   await seedIfEmpty();
   await runOnboardingIfNeeded();
   await navigate("home");
