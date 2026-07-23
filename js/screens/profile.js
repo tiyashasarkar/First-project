@@ -58,7 +58,7 @@ export async function renderProfile(container) {
       <div class="settings-group-label">Appearance</div>
       <div class="settings-group">
         <button class="settings-row" id="pf-theme" style="width:100%;background:none;border:none;text-align:left;">
-          <div class="si">${currentTheme.emoji}</div>
+          <div class="si">${currentTheme.image ? `<img src="${currentTheme.image}" alt="" />` : currentTheme.emoji}</div>
           <div><div class="label">Theme</div><div class="sub">${currentTheme.label} — tap to change</div></div>
           <div class="chev">›</div>
         </button>
@@ -167,7 +167,7 @@ function openThemeSheet(container) {
       const card = document.createElement("button");
       card.className = "mode-card" + (t.id === current ? " selected" : "");
       card.innerHTML = `
-        <div class="mc-emoji">${t.emoji}</div>
+        <div class="mc-emoji">${t.image ? `<img src="${t.image}" alt="${t.label}" />` : t.emoji}</div>
         <div>
           <div class="mc-title">${t.label}</div>
           <div class="mc-tag">${t.tagline}</div>
