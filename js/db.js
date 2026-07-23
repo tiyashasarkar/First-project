@@ -313,7 +313,7 @@ export async function exportAllData() {
 }
 
 export async function importAllData(data) {
-  if (!data || data.app !== "blossom-journal") throw new Error("This doesn't look like a Blossom backup file.");
+  if (!data || data.app !== "blossom-journal") throw new Error("This doesn't look like a valid backup file.");
   for (const m of data.media || []) {
     await put("media", { id: m.id, dataUrl: m.dataUrl, createdAt: m.createdAt || Date.now() });
   }

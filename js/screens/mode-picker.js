@@ -4,8 +4,8 @@ export function renderModePicker(container, currentThemeId, onDone) {
   let selected = currentThemeId || "blossom";
 
   container.innerHTML = `
-    <h1>Choose your vibe</h1>
-    <p class="sub">${currentThemeId ? "Keep your look, or pick a new one for this session." : "Pick a look for Blossom — you can always change this later in Profile."}</p>
+    <h1>Choose Your Theme</h1>
+    <p class="sub">${currentThemeId ? "Keep your look, or pick a new one for this session." : "Pick a look for Once upon a Tuesday — you can always change this later in Profile."}</p>
     <div class="mode-list" id="mode-list"></div>
     <button class="btn btn-primary btn-block" id="mode-continue" style="margin-top:16px;">Continue</button>
   `;

@@ -1,8 +1,8 @@
-# Blossom 🌸 — a photo journal
+# Once upon a Tuesday 📖 — a photo journal
 
 *Where memories become pages.*
 
-A soft-pink, coquette-core scrapbook photo journal built as a Progressive Web App (PWA). It installs straight from Safari onto your iPhone home screen and works like a native app — and now signs you in with your own free, private account so your memories sync across any browser or device.
+A handmade-feeling, coquette-core scrapbook photo journal built as a Progressive Web App (PWA). It installs straight from Safari onto your iPhone home screen and works like a native app — and now signs you in with your own free, private account so your memories sync across any browser or device.
 
 ## What's in the app so far
 

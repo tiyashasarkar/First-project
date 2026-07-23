@@ -51,7 +51,7 @@ export async function renderProfile(container) {
           <div class="profile-avatar-badge"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13.5" r="3.2"/></svg></div>
         </div>
         <div>
-          <div class="profile-name">${escapeHtml(email) || "Blossom Journal"}</div>
+          <div class="profile-name">${escapeHtml(email) || "Once upon a Tuesday"}</div>
           <div class="profile-stats">${journals.length} journals · ${pages.length} pages · synced to your account</div>
         </div>
       </div>
@@ -102,7 +102,7 @@ export async function renderProfile(container) {
 
       <div class="section" style="padding:26px 0;text-align:center;">
         <div style="font-family:var(--font-script);color:var(--dusty-rose);font-size:22px;">where memories become pages</div>
-        <div class="profile-foot" style="font-size:11.5px;color:var(--ink-soft);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:4px;">Blossom v1.0 · made with <span class="profile-foot-bow">${ICONS.bow}</span></div>
+        <div class="profile-foot" style="font-size:11.5px;color:var(--ink-soft);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:4px;">Once upon a Tuesday · made with <span class="profile-foot-bow">${ICONS.bow}</span></div>
       </div>
     </div>
   `;
@@ -158,7 +158,7 @@ async function changeAvatar(container) {
 
 function openThemeSheet(container) {
   openSheet({
-    title: "Choose your vibe",
+    title: "Choose Your Theme",
     html: `<div class="mode-list" id="theme-sheet-list" style="padding-bottom:6px;"></div>`,
   });
   (async () => {
@@ -196,7 +196,7 @@ async function doBackup() {
     const a = document.createElement("a");
     const stamp = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = `blossom-backup-${stamp}.json`;
+    a.download = `once-upon-a-tuesday-backup-${stamp}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -211,7 +211,7 @@ function doRestore() {
   openSheet({
     title: "Restore from backup",
     html: `
-      <p style="color:var(--ink-soft);font-size:14px;line-height:1.55;margin-bottom:18px;">Choose a Blossom backup file (.json). New journals and pages will be added alongside what you already have.</p>
+      <p style="color:var(--ink-soft);font-size:14px;line-height:1.55;margin-bottom:18px;">Choose a backup file (.json). New journals and pages will be added alongside what you already have.</p>
       <input type="file" accept="application/json,.json" id="rs-file" style="margin-bottom:18px;" />
       <button class="btn btn-primary btn-block" id="rs-go">Restore</button>
     `,
