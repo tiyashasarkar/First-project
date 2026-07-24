@@ -37,14 +37,24 @@ const THEME_CHROME = {
   midnight: "#14172c",
 };
 
+// iOS Safari is unreliable about re-reading a theme-color meta tag whose
+// `content` attribute was just mutated in place -- it can keep tinting the
+// chrome with whatever value it parsed at page load. Removing the old tag
+// and inserting a brand-new one forces it to notice.
+function setThemeColorMeta(color) {
+  document.querySelectorAll('meta[name="theme-color"]').forEach((el) => el.remove());
+  const meta = document.createElement("meta");
+  meta.setAttribute("name", "theme-color");
+  meta.setAttribute("content", color);
+  document.head.appendChild(meta);
+}
+
 export function syncThemeColorMeta(themeId) {
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", THEME_CHROME[themeId] || CREAM_CHROME);
+  setThemeColorMeta(THEME_CHROME[themeId] || CREAM_CHROME);
 }
 
 export function resetThemeColorMeta() {
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", CREAM_CHROME);
+  setThemeColorMeta(CREAM_CHROME);
 }
 
 function playThemeTransition(themeId) {
